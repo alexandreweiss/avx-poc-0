@@ -1,0 +1,24 @@
+# Copy to terraform.tfvars and fill in values.
+# terraform.tfvars is gitignored.
+
+aviatrix_controller_ip = "<controller-ip-or-hostname>"
+aviatrix_username      = "admin"
+aviatrix_password      = "<admin-password>"
+
+aws_account_name = "<aws-account-name-in-controller>"
+gcp_project_id   = "<gcp-project-id>"
+gcp_account_name = "<gcp-account-name-in-controller>"
+
+# Optional overrides (defaults shown):
+# aws_region          = "eu-west-1"
+# gcp_region          = "europe-west9"
+# transit_aws_cidr    = "10.10.0.0/23"
+# transit_gcp_cidr    = "10.30.0.0/23"
+# spoke_aws1_cidr     = "10.20.0.0/23"
+# spoke_aws2_cidr     = "10.21.0.0/23"
+# spoke_gcp_cidr      = "10.31.0.0/23"
+
+# Set to true + supply pairing key when circuits are available:
+# deploy_dx_gateway        = false
+# deploy_gcp_interconnect  = false
+# gcp_interconnect_pairing_key = ""
