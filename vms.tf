@@ -181,7 +181,7 @@ resource "google_compute_firewall" "spoke_gcp_allow" {
 resource "google_compute_instance" "spoke_gcp" {
   name         = "spoke-gcp-vm"
   machine_type = var.spoke_gcp_vm_type
-  zone         = "${var.gcp_region}-a"
+  zone    = "${var.gcp_region}-a"
   project      = var.gcp_project_id
 
   boot_disk {
@@ -191,8 +191,7 @@ resource "google_compute_instance" "spoke_gcp" {
   }
 
   network_interface {
-    # Use the Aviatrix-managed subnet; subnets[0] is the gateway subnet, [1] is workload
-    subnetwork = aviatrix_vpc.spoke_gcp.subnets[1].subnet_id
+    subnetwork = aviatrix_vpc.spoke_gcp.subnets[0].subnet_id
     access_config {}
   }
 
@@ -206,7 +205,7 @@ resource "google_compute_instance" "spoke_gcp" {
     apt-get install -y nginx
     cat > /var/www/html/index.html <<HTML
     <!DOCTYPE html><html><body>
-    <h1>Spoke: GCP Paris (europe-west9)</h1>
+    <h1>Spoke: GCP Frankfurt (europe-west3)</h1>
     </body></html>
     HTML
     systemctl enable nginx

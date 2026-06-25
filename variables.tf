@@ -79,9 +79,9 @@ variable "gcp_account_name" {
 }
 
 variable "gcp_region" {
-  description = "GCP region (Paris)"
+  description = "GCP region"
   type        = string
-  default     = "europe-west9"
+  default     = "europe-west3"
 }
 
 variable "transit_gcp_cidr" {
@@ -105,7 +105,7 @@ variable "transit_gcp_gw_size" {
 variable "spoke_gcp_gw_size" {
   description = "GCP spoke gateway instance size"
   type        = string
-  default     = "n1-standard-1"
+  default     = "n1-standard-2"
 }
 
 variable "spoke_gcp_vm_type" {

@@ -2,7 +2,7 @@
 
 module "transit_aws" {
   source  = "terraform-aviatrix-modules/mc-transit/aviatrix"
-  version = "8.2.0"
+  version = "9.0.0"
 
   cloud         = "aws"
   region        = var.aws_region
@@ -10,26 +10,25 @@ module "transit_aws" {
   cidr          = var.transit_aws_cidr
   name          = "transit-aws-dublin"
   instance_size = var.transit_aws_gw_size
-  ha_gw         = true
+  ha_gw         = false
 
-  # DCF requires connected_transit; no FireNet in this PoC
-  connected_transit = true
+  connected_transit      = true
   enable_transit_firenet = false
 }
 
-# --- GCP Transit (Paris, europe-west9) ---
+# --- GCP Transit (Frankfurt, europe-west3) ---
 
 module "transit_gcp" {
   source  = "terraform-aviatrix-modules/mc-transit/aviatrix"
-  version = "8.2.0"
+  version = "9.0.0"
 
-  cloud         = "gcp"
-  region        = var.gcp_region
+  cloud   = "gcp"
+  region  = var.gcp_region
   account       = var.gcp_account_name
   cidr          = var.transit_gcp_cidr
   name          = "transit-gcp-paris"
   instance_size = var.transit_gcp_gw_size
-  ha_gw         = true
+  ha_gw = false
 
   connected_transit = true
 }

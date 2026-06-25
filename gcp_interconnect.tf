@@ -22,7 +22,4 @@ resource "google_compute_interconnect_attachment" "partner" {
   router    = google_compute_router.interconnect[0].id
   type      = "PARTNER"
   bandwidth = var.gcp_interconnect_bandwidth
-
-  # Partner provides the pairing key; set after ordering the circuit.
-  pairing_key = var.gcp_interconnect_pairing_key != "" ? var.gcp_interconnect_pairing_key : null
 }

@@ -39,12 +39,7 @@ resource "aviatrix_smart_group" "spoke_gcp" {
 
   selector {
     match_expressions {
-      type         = "vm"
-      account_name = var.gcp_account_name
-      region       = var.gcp_region
-      tags = {
-        spoke-gcp-vm = ""
-      }
+      cidr = var.spoke_gcp_cidr
     }
   }
 

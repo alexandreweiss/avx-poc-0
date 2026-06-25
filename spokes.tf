@@ -52,21 +52,25 @@ resource "aviatrix_spoke_transit_attachment" "aws2" {
   transit_gw_name = module.transit_aws.transit_gateway.gw_name
 }
 
-# --- GCP Spoke (Paris) ---
+# --- GCP Spoke (Frankfurt) ---
 
 resource "aviatrix_vpc" "spoke_gcp" {
   cloud_type   = 4
   account_name = var.gcp_account_name
-  region       = var.gcp_region
   name         = "spoke-gcp-vpc"
-  cidr         = var.spoke_gcp_cidr
+
+  subnets {
+    name   = "spoke-gcp-vpc"
+    cidr   = var.spoke_gcp_cidr
+    region = var.gcp_region
+  }
 }
 
 resource "aviatrix_spoke_gateway" "gcp" {
   cloud_type   = 4
   account_name = var.gcp_account_name
   gw_name      = "spoke-gcp-gw"
-  vpc_id       = aviatrix_vpc.spoke_gcp.name
+  vpc_id       = aviatrix_vpc.spoke_gcp.vpc_id
   vpc_reg      = var.gcp_region
   gw_size      = var.spoke_gcp_gw_size
   subnet       = aviatrix_vpc.spoke_gcp.subnets[0].cidr

@@ -36,11 +36,13 @@ output "nginx_url_gcp" {
 output "transit_aws_gw_name" {
   description = "AWS Transit gateway name"
   value       = module.transit_aws.transit_gateway.gw_name
+  sensitive   = true
 }
 
 output "transit_gcp_gw_name" {
   description = "GCP Transit gateway name"
   value       = module.transit_gcp.transit_gateway.gw_name
+  sensitive   = true
 }
 
 output "dx_gateway_id" {
