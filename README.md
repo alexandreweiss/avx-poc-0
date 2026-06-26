@@ -62,12 +62,32 @@ DCF policy:       east-west PERMIT (all spokes ↔ all spokes) · default DENY
 
 ### AL tenant accounts
 
-Two cloud accounts from AL's tenant are required before deploying anything:
+Two cloud accounts from AL's tenant are required before deploying anything.
 
-| Account | What's needed |
-|---|---|
-| **AWS account** | An AWS account in AL's organization with sufficient EC2/VPC quota in `eu-west-1`. IAM credentials (access key + secret) with permissions to create VPCs, EC2 instances, key pairs, security groups, and EIPs. |
-| **GCP project** | A GCP project in AL's organization with Compute Engine API enabled. A service account with the `Compute Admin` and `Service Account User` roles, and a JSON key file downloaded locally. |
+#### AWS account (`eu-west-1`)
+
+IAM credentials (access key + secret) with permissions to create VPCs, EC2 instances, key pairs, security groups, and EIPs. The account must have enough quota for the resources below — check limits in **Service Quotas → EC2** before applying.
+
+| Resource | Consumed | Default limit | Notes |
+|---|---|---|---|
+| Elastic IPs (EIPs) | **3** | 5 per region | 1× transit gateway + 2× spoke gateways. If the Controller and CoPilot also run in this account, they consume 2 more EIPs — total 5, right at the default limit. Request a quota increase to 10 if needed. |
+| VPCs | **4** | 5 per region | 1× transit VPC + 2× spoke VPCs + 1× controlplane VPC (if Controller deployed here). Request increase if other VPCs already exist. |
+| EC2 instances (running) | **5** | varies | 1× transit gateway (`c5.xlarge`) + 2× spoke gateways (`t3.small`) + 2× spoke VMs (`t3.micro`). Controlplane adds 2 more if deployed here. |
+| Internet Gateways | **4** | 5 per region | 1 per VPC. Same caveat as VPCs. |
+| Security Groups | ~10 | 2500 | No concern in practice. |
+
+> **EIP limit is the most common deployment blocker.** Run `aws ec2 describe-addresses --region eu-west-1` to count currently allocated EIPs before applying.
+
+#### GCP project (`europe-west3`)
+
+A GCP project in AL's organization with the **Compute Engine API** enabled. A service account with `Compute Admin` and `Service Account User` roles, and a JSON key file downloaded locally (set via `GOOGLE_APPLICATION_CREDENTIALS`).
+
+| Resource | Consumed | Default limit | Notes |
+|---|---|---|---|
+| CPUs (N1, europe-west3) | **6** | 24 | 1× transit gateway (`n1-standard-2` = 2 vCPU) + 1× spoke gateway (`n1-standard-2` = 2 vCPU) + 1× spoke VM (`e2-micro` = 0.25 vCPU, rounds up). Well within default quota. |
+| VPC networks | **2** | 15 | 1× transit VPC + 1× spoke VPC. |
+| Static external IPs | **2** | 8 | 1 per Aviatrix gateway. |
+| Firewall rules | ~8 | 200 | Aviatrix creates `avx-*` rules automatically per VPC. |
 
 Both accounts must be onboarded into the Aviatrix Controller before running `terraform apply` (Controller → Onboarding → AWS / GCP).
 
