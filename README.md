@@ -1,12 +1,12 @@
-# Aviatrix Multicloud PoC — AWS Dublin + GCP Paris
+# Aviatrix Multicloud PoC — AWS Dublin + GCP Frankfurt
 
-Terraform proof-of-concept for Orange, demonstrating Aviatrix in a multicloud environment: two transit gateways (AWS eu-west-1 and GCP europe-west9) connected over a private underlay, three spoke gateways with workload VMs, DCF east-west segmentation, and ready-to-activate stubs for AWS Direct Connect and GCP Partner Interconnect.
+Terraform proof-of-concept for AL (AL), demonstrating Aviatrix in a multicloud environment: two transit gateways (AWS eu-west-1 and GCP europe-west3) connected over Orange's private underlay, three spoke gateways with workload VMs, DCF east-west segmentation, and ready-to-activate stubs for AWS Direct Connect and GCP Partner Interconnect.
 
 ---
 
 ## Business Context
 
-Orange is evaluating Aviatrix as the multicloud networking layer for workloads split across AWS and GCP, with Orange's own network infrastructure as the private underlay between the two clouds.
+AL (AL) is evaluating Aviatrix as the multicloud networking layer for workloads split across AWS and GCP, with Orange's private network infrastructure as the underlay between the two clouds.
 
 This PoC demonstrates four capabilities in a single deployable lab:
 
@@ -16,9 +16,9 @@ This PoC demonstrates four capabilities in a single deployable lab:
 
 **Security** — Distributed Cloud Firewall (DCF) enforces east-west segmentation between spoke workloads with smart group tagging (no IP management), default deny, and per-flow logging. All policies are defined in code alongside the infrastructure.
 
-**Encryption** — All data-plane traffic traversing the Aviatrix overlay is encrypted end-to-end with AES-256 / High-Performance Encryption (HPE). The transit peering between AWS Dublin and GCP Paris is fully encrypted regardless of the underlay.
+**Encryption** — All data-plane traffic traversing the Aviatrix overlay is encrypted end-to-end with AES-256 / High-Performance Encryption (HPE). The transit peering between AWS Dublin and GCP Frankfurt is fully encrypted regardless of the underlay.
 
-**Private underlay ready** — The AWS Direct Connect Gateway and GCP Partner Interconnect stubs are included in this repo and can be activated with a single variable flip (`deploy_dx_gateway = true`, `deploy_gcp_interconnect = true`) once Orange's circuits are provisioned. The overlay and DCF policies require no changes.
+**Private underlay ready** — The AWS Direct Connect Gateway and GCP Partner Interconnect stubs are included in this repo and can be activated with a single variable flip (`deploy_dx_gateway = true`, `deploy_gcp_interconnect = true`) once Orange's circuits toward AL are provisioned. The overlay and DCF policies require no changes.
 
 ---
 
@@ -28,11 +28,11 @@ This PoC demonstrates four capabilities in a single deployable lab:
                 Orange Private Underlay
      ┌──────────────────────────────────────────┐
      │                                          │
-     │   AWS eu-west-1 (Dublin)                 │   GCP europe-west9 (Paris)
+     │   AWS eu-west-1 (Dublin)                 │   GCP europe-west3 (Frankfurt)
      │  ┌─────────────────────────┐             │  ┌─────────────────────────┐
      │  │  transit-aws-dublin     │◄────────────┼─►│  transit-gcp-paris      │
      │  │  10.10.0.0/23           │  encrypted  │  │  10.30.0.0/23           │
-     │  │  c5.xlarge              │  peering    │  │  n1-standard-1          │
+     │  │  c5.xlarge              │  peering    │  │  n1-standard-2          │
      │  │                         │             │  │                         │
      │  │  spoke-aws1  10.20/23   │             │  │  spoke-gcp   10.31/23   │
      │  │  └─ EC2 Ubuntu + nginx  │             │  │  └─ GCE Ubuntu + nginx  │
@@ -129,17 +129,13 @@ Deployment takes approximately 20–30 minutes. Gateway provisioning is the bott
 
 ### 3. Verify
 
-After `apply` completes, test connectivity between clouds:
+Run the full automated test suite:
 
 ```bash
-# SSH to AWS spoke 1
-$(terraform output -raw ssh_connect_aws1)
-
-# From AWS spoke 1, curl the GCP nginx VM (private IP, cross-cloud)
-curl http://10.31.0.x
+./tests.sh
 ```
 
-Or open the nginx location pages in a browser:
+Or check individual nginx pages:
 
 ```bash
 terraform output nginx_url_aws1
@@ -147,7 +143,7 @@ terraform output nginx_url_aws2
 terraform output nginx_url_gcp
 ```
 
-Each nginx page displays the VM's cloud, region, and private IP — confirming the multicloud overlay is routing correctly.
+Each page confirms the VM's cloud and region, and SSH commands are ready in the outputs.
 
 ---
 
@@ -168,7 +164,7 @@ Each nginx page displays the VM's cloud, region, and private IP — confirming t
 | Variable | Default | Description |
 |---|---|---|
 | `aws_region` | `eu-west-1` | AWS region (Dublin) |
-| `gcp_region` | `europe-west9` | GCP region (Paris) |
+| `gcp_region` | `europe-west3` | GCP region (Frankfurt) |
 | `transit_aws_cidr` | `10.10.0.0/23` | AWS transit VPC CIDR |
 | `transit_gcp_cidr` | `10.30.0.0/23` | GCP transit VPC CIDR |
 | `spoke_aws1_cidr` | `10.20.0.0/23` | AWS spoke 1 VPC CIDR |
@@ -180,9 +176,9 @@ Each nginx page displays the VM's cloud, region, and private IP — confirming t
 | Variable | Default | Description |
 |---|---|---|
 | `transit_aws_gw_size` | `c5.xlarge` | AWS transit gateway instance size |
-| `transit_gcp_gw_size` | `n1-standard-1` | GCP transit gateway instance size |
+| `transit_gcp_gw_size` | `n1-standard-2` | GCP transit gateway instance size |
 | `spoke_aws_gw_size` | `t3.small` | AWS spoke gateway instance size |
-| `spoke_gcp_gw_size` | `n1-standard-1` | GCP spoke gateway instance size |
+| `spoke_gcp_gw_size` | `n1-standard-2` | GCP spoke gateway instance size |
 | `spoke_vm_instance_type` | `t3.micro` | EC2 instance type for spoke VMs |
 | `spoke_gcp_vm_type` | `e2-micro` | GCP instance type for spoke VM |
 
@@ -243,7 +239,7 @@ dx_gateway_asn    = 64512       # optional — match Orange's BGP config
 dx_gateway_name   = "poc-dx-gw" # optional
 ```
 
-This creates an `aws_dx_gateway` with a Virtual Gateway (VGW) association on the AWS transit VPC. Order the DX Connection and Private VIF separately via AWS Console or through Orange as the partner.
+This creates an `aws_dx_gateway` with a Virtual Gateway (VGW) association on the AWS transit VPC. Order the DX Connection and Private VIF separately via AWS Console or through Orange as the connectivity partner.
 
 ### GCP Partner Interconnect
 
@@ -273,7 +269,7 @@ gcp_interconnect_pairing_key = "<key-from-step-1>"
 terraform apply
 ```
 
-The attachment transitions from `PENDING_CUSTOMER` to `ACTIVE` once Orange provisions their side.
+The attachment transitions from `PENDING_CUSTOMER` to `ACTIVE` once Orange provisions their side of the circuit.
 
 ---
 
@@ -329,6 +325,33 @@ Remove the generated SSH key:
 ```bash
 rm spoke-vms.pem
 ```
+
+---
+
+## Tests
+
+`tests.sh` runs an automated connectivity and policy validation suite against the deployed infrastructure. No arguments needed — just run from the repo root after `terraform apply`.
+
+```bash
+./tests.sh
+```
+
+### What it covers
+
+| # | Test | What it proves |
+|---|---|---|
+| 1 | Public nginx on all 3 VMs | Basic reachability from internet |
+| 2 | AWS Spoke 1 ↔ AWS Spoke 2 (private IP) | East-west across spokes, same cloud |
+| 3 | AWS → GCP (private IP) | Cross-cloud routing via transit peering |
+| 4 | GCP → AWS (private IP) | Bidirectional cross-cloud |
+| 5 | Cross-cloud ICMP + RTT | Latency baseline (~22 ms Dublin ↔ Frankfurt) |
+| 6 | HTTP egress from spoke | DCF AllWeb egress PERMIT policy active |
+| 7 | Controller API login | Aviatrix control plane reachable |
+| 8 | Traceroute AWS → GCP | Shows spoke gateway hop + encrypted tunnel (no-reply hops expected) |
+
+Expected output: **12 passed, 0 failed**.
+
+The no-reply hops in traceroute are intentional — traffic is encapsulated in the Aviatrix encrypted tunnel after the first gateway hop.
 
 ---
 
