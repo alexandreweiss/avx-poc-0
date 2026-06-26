@@ -1,12 +1,12 @@
 # Aviatrix Multicloud PoC — AWS Dublin + GCP Frankfurt
 
-Terraform proof-of-concept for AL (AL), demonstrating Aviatrix in a multicloud environment: two transit gateways (AWS eu-west-1 and GCP europe-west3) connected over Orange's private underlay, three spoke gateways with workload VMs, DCF east-west segmentation, and ready-to-activate stubs for AWS Direct Connect and GCP Partner Interconnect.
+Terraform proof-of-concept for AL, demonstrating Aviatrix in a multicloud environment: two transit gateways (AWS eu-west-1 and GCP europe-west3) connected over Orange's private underlay, three spoke gateways with workload VMs, DCF east-west segmentation, and ready-to-activate stubs for AWS Direct Connect and GCP Partner Interconnect.
 
 ---
 
 ## Business Context
 
-AL (AL) is evaluating Aviatrix as the multicloud networking layer for workloads split across AWS and GCP, with Orange's private network infrastructure as the underlay between the two clouds.
+AL is evaluating Aviatrix as the multicloud networking layer for workloads split across AWS and GCP, with Orange's private network infrastructure as the underlay between the two clouds.
 
 This PoC demonstrates four capabilities in a single deployable lab:
 
@@ -358,6 +358,46 @@ Remove the generated SSH key:
 ```bash
 rm spoke-vms.pem
 ```
+
+---
+
+## Cost Estimate (CSP only)
+
+These are **cloud provider infrastructure costs only** — Aviatrix licensing is separate. All figures are approximate, based on on-demand pricing in `eu-west-1` (AWS) and `europe-west3` (GCP) as of mid-2025. Costs scale linearly with uptime.
+
+### AWS (`eu-west-1`)
+
+| Resource | Type | $/hr | 8 hr/day est. |
+|---|---|---|---|
+| Transit gateway EC2 | `c5.xlarge` | ~$0.192 | ~$1.54 |
+| Spoke gateway 1 EC2 | `t3.small` | ~$0.023 | ~$0.18 |
+| Spoke gateway 2 EC2 | `t3.small` | ~$0.023 | ~$0.18 |
+| Spoke VM 1 EC2 | `t3.micro` | ~$0.012 | ~$0.10 |
+| Spoke VM 2 EC2 | `t3.micro` | ~$0.012 | ~$0.10 |
+| EIPs (3 × idle rate) | — | ~$0.011 | ~$0.09 |
+| **AWS subtotal** | | **~$0.27/hr** | **~$2.19/day** |
+
+### GCP (`europe-west3`)
+
+| Resource | Type | $/hr | 8 hr/day est. |
+|---|---|---|---|
+| Transit gateway VM | `n1-standard-2` | ~$0.112 | ~$0.90 |
+| Spoke gateway VM | `n1-standard-2` | ~$0.112 | ~$0.90 |
+| Spoke VM | `e2-micro` | ~$0.008 | ~$0.06 |
+| Static external IPs (2) | — | ~$0.010 | ~$0.08 |
+| **GCP subtotal** | | **~$0.24/hr** | **~$1.94/day** |
+
+### Summary
+
+| Scenario | AWS | GCP | **Total** |
+|---|---|---|---|
+| Active 8 hrs/day | ~$2.19 | ~$1.94 | **~$4.13/day** |
+| Active 24 hrs/day | ~$6.58 | ~$5.81 | **~$12.39/day** |
+| Full week (8 hrs/day) | ~$15.30 | ~$13.55 | **~$28.85/week** |
+
+> **Tip — stop instead of destroy:** Aviatrix gateways are EC2/GCE instances. Stopping them overnight via the Controller or `terraform apply` with count=0 halts compute billing while preserving configuration. EIPs and static IPs continue to accrue a small idle charge (~$0.005/hr per IP) unless released.
+
+> **Data transfer:** Cross-cloud egress (AWS → internet toward GCP) is billed by AWS at ~$0.09/GB. For a PoC with light test traffic this is negligible (<$1 total).
 
 ---
 
