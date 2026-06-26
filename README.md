@@ -395,9 +395,50 @@ These are **cloud provider infrastructure costs only** — Aviatrix licensing is
 | Active 24 hrs/day | ~$6.58 | ~$5.81 | **~$12.39/day** |
 | Full week (8 hrs/day) | ~$15.30 | ~$13.55 | **~$28.85/week** |
 
-> **Tip — stop instead of destroy:** Aviatrix gateways are EC2/GCE instances. Stopping them overnight via the Controller or `terraform apply` with count=0 halts compute billing while preserving configuration. EIPs and static IPs continue to accrue a small idle charge (~$0.005/hr per IP) unless released.
+### Optional: Private Underlay (Orange circuits — 50 Mbps)
 
-> **Data transfer:** Cross-cloud egress (AWS → internet toward GCP) is billed by AWS at ~$0.09/GB. For a PoC with light test traffic this is negligible (<$1 total).
+These costs apply when `deploy_dx_gateway = true` and/or `deploy_gcp_interconnect = true`. Billed by the CSP regardless of traffic volume — circuit pricing is always-on.
+
+#### AWS Direct Connect (50 Mbps, eu-west-1)
+
+AWS does not offer a native 50 Mbps DX port. The smallest available port is **100 Mbps hosted connection** (via a DX partner such as Orange). Dedicated ports start at 1 Gbps.
+
+| Component | Billing model | Monthly cost (est.) |
+|---|---|---|
+| Hosted connection (100 Mbps via partner) | Partner-priced — not billed by AWS directly. Orange charges AL separately. | Partner rate |
+| AWS DX Gateway | No charge | $0 |
+| AWS Virtual Private Gateway (VGW) | No charge | $0 |
+| DX data transfer out (AWS → on-prem) | $0.02/GB (eu-west-1, private VIF) | Usage-based |
+| **AWS CSP fixed cost** | | **$0** (partner circuit billed by Orange) |
+
+> Orange orders the hosted connection on AL's behalf. AWS bills only for data transfer over the VIF — not the port itself on a hosted connection.
+
+#### GCP Partner Interconnect (50 Mbps, europe-west3)
+
+Partner Interconnect supports capacities starting at 50 Mbps (VLAN attachment). The circuit is ordered through a partner (Orange).
+
+| Component | Billing model | Monthly cost (est.) |
+|---|---|---|
+| VLAN attachment — 50 Mbps | $0.05/hr (GCP charges for the attachment itself) | **~$36/month** |
+| Partner capacity (50 Mbps) | Partner-priced — Orange charges AL separately | Partner rate |
+| GCP Cloud Router | $0.01/hr per VPN tunnel equivalent | ~$7/month |
+| Egress over interconnect (GCP → on-prem) | $0.02/GB | Usage-based |
+| **GCP CSP fixed cost** | | **~$43/month** |
+
+### Summary with private underlay
+
+| Scenario | AWS+GCP compute | DX (AWS CSP) | Partner Interconnect (GCP CSP) | **Total CSP/month** |
+|---|---|---|---|---|
+| PoC only (internet overlay) | ~$372 | — | — | **~$372** |
+| + AWS DX stub activated | ~$372 | $0 | — | **~$372** (Orange bills separately) |
+| + GCP Interconnect stub activated | ~$372 | — | ~$43 | **~$415** |
+| Both underlay stubs active | ~$372 | $0 | ~$43 | **~$415** |
+
+> Compute estimate assumes 24/7 operation for 30 days. Orange's circuit charges (DX hosted connection + Partner Interconnect capacity) are not included — these are negotiated directly between Orange and AL.
+
+> **Tip — stop instead of destroy:** Aviatrix gateways are EC2/GCE instances. Stopping them overnight via the Controller halts compute billing while preserving configuration. EIPs and static IPs continue to accrue a small idle charge (~$0.005/hr per IP) unless released. GCP VLAN attachment billing continues even when gateways are stopped.
+
+> **Data transfer:** Cross-cloud egress (AWS → internet toward GCP) is billed by AWS at ~$0.09/GB. For a PoC with light test traffic this is negligible (<$1 total). With private underlay active, egress over the circuit drops to ~$0.02/GB.
 
 ---
 
