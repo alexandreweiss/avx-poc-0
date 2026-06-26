@@ -94,11 +94,12 @@ resource "aws_security_group" "spoke_aws2_vms" {
 # --- AWS Spoke 1 VM ---
 
 resource "aws_instance" "spoke_aws1" {
-  ami                    = data.aws_ami.ubuntu.id
-  instance_type          = var.spoke_vm_instance_type
-  key_name               = aws_key_pair.spoke_vms.key_name
-  subnet_id              = aviatrix_vpc.spoke_aws1.subnets[0].subnet_id
-  vpc_security_group_ids = [aws_security_group.spoke_vms.id]
+  ami                         = data.aws_ami.ubuntu.id
+  instance_type               = var.spoke_vm_instance_type
+  key_name                    = aws_key_pair.spoke_vms.key_name
+  subnet_id                   = aviatrix_vpc.spoke_aws1.public_subnets[0].subnet_id
+  vpc_security_group_ids      = [aws_security_group.spoke_vms.id]
+  associate_public_ip_address = true
 
   user_data = <<-EOF
     #!/bin/bash
@@ -125,11 +126,12 @@ resource "aws_instance" "spoke_aws1" {
 # --- AWS Spoke 2 VM ---
 
 resource "aws_instance" "spoke_aws2" {
-  ami                    = data.aws_ami.ubuntu.id
-  instance_type          = var.spoke_vm_instance_type
-  key_name               = aws_key_pair.spoke_vms.key_name
-  subnet_id              = aviatrix_vpc.spoke_aws2.subnets[0].subnet_id
-  vpc_security_group_ids = [aws_security_group.spoke_aws2_vms.id]
+  ami                         = data.aws_ami.ubuntu.id
+  instance_type               = var.spoke_vm_instance_type
+  key_name                    = aws_key_pair.spoke_vms.key_name
+  subnet_id                   = aviatrix_vpc.spoke_aws2.public_subnets[0].subnet_id
+  vpc_security_group_ids      = [aws_security_group.spoke_aws2_vms.id]
+  associate_public_ip_address = true
 
   user_data = <<-EOF
     #!/bin/bash
@@ -181,7 +183,7 @@ resource "google_compute_firewall" "spoke_gcp_allow" {
 resource "google_compute_instance" "spoke_gcp" {
   name         = "spoke-gcp-vm"
   machine_type = var.spoke_gcp_vm_type
-  zone    = "${var.gcp_region}-a"
+  zone    = "${var.gcp_region}-b"
   project      = var.gcp_project_id
 
   boot_disk {
@@ -191,7 +193,7 @@ resource "google_compute_instance" "spoke_gcp" {
   }
 
   network_interface {
-    subnetwork = aviatrix_vpc.spoke_gcp.subnets[0].subnet_id
+    subnetwork = "projects/${var.gcp_project_id}/regions/${var.gcp_region}/subnetworks/${aviatrix_vpc.spoke_gcp.subnets[0].name}"
     access_config {}
   }
 

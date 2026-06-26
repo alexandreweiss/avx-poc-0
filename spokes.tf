@@ -71,7 +71,7 @@ resource "aviatrix_spoke_gateway" "gcp" {
   account_name = var.gcp_account_name
   gw_name      = "spoke-gcp-gw"
   vpc_id       = aviatrix_vpc.spoke_gcp.vpc_id
-  vpc_reg      = var.gcp_region
+  vpc_reg      = "${var.gcp_region}-b"
   gw_size      = var.spoke_gcp_gw_size
   subnet       = aviatrix_vpc.spoke_gcp.subnets[0].cidr
 }
