@@ -60,6 +60,19 @@ DCF policy:       east-west PERMIT (all spokes ↔ all spokes) · default DENY
 
 ## Prerequisites
 
+### AL tenant accounts
+
+Two cloud accounts from AL's tenant are required before deploying anything:
+
+| Account | What's needed |
+|---|---|
+| **AWS account** | An AWS account in AL's organization with sufficient EC2/VPC quota in `eu-west-1`. IAM credentials (access key + secret) with permissions to create VPCs, EC2 instances, key pairs, security groups, and EIPs. |
+| **GCP project** | A GCP project in AL's organization with Compute Engine API enabled. A service account with the `Compute Admin` and `Service Account User` roles, and a JSON key file downloaded locally. |
+
+Both accounts must be onboarded into the Aviatrix Controller before running `terraform apply` (Controller → Onboarding → AWS / GCP).
+
+---
+
 ### Toolchain
 
 ```bash
