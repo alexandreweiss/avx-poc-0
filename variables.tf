@@ -57,7 +57,7 @@ variable "transit_aws_gw_size" {
 variable "spoke_aws_gw_size" {
   description = "AWS spoke gateway instance size"
   type        = string
-  default     = "t3.small"
+  default     = "t3.medium"
 }
 
 variable "spoke_vm_instance_type" {
