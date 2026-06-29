@@ -134,6 +134,14 @@ variable "public_internet_smartgroup_uuid" {
   default     = "def000ad-0000-0000-0000-000000000001"
 }
 
+# --- Optional: GCP deployment toggle ---
+
+variable "deploy_gcp" {
+  description = "Deploy GCP transit, spoke, and VM (set false for AWS-only deployment)"
+  type        = bool
+  default     = true
+}
+
 # --- Optional: AWS Direct Connect Gateway ---
 
 variable "deploy_dx_gateway" {

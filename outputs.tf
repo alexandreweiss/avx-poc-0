@@ -15,7 +15,7 @@ output "ssh_connect_aws2" {
 
 output "ssh_connect_gcp" {
   description = "SSH command for GCP Spoke VM"
-  value       = "ssh -i spoke-vms.pem ubuntu@${google_compute_instance.spoke_gcp.network_interface[0].access_config[0].nat_ip}"
+  value       = var.deploy_gcp ? "ssh -i spoke-vms.pem ubuntu@${google_compute_instance.spoke_gcp[0].network_interface[0].access_config[0].nat_ip}" : "not deployed"
 }
 
 output "nginx_url_aws1" {
@@ -30,7 +30,7 @@ output "nginx_url_aws2" {
 
 output "nginx_url_gcp" {
   description = "Nginx URL for GCP Spoke VM"
-  value       = "http://${google_compute_instance.spoke_gcp.network_interface[0].access_config[0].nat_ip}"
+  value       = var.deploy_gcp ? "http://${google_compute_instance.spoke_gcp[0].network_interface[0].access_config[0].nat_ip}" : "not deployed"
 }
 
 output "transit_aws_gw_name" {
@@ -41,7 +41,7 @@ output "transit_aws_gw_name" {
 
 output "transit_gcp_gw_name" {
   description = "GCP Transit gateway name"
-  value       = module.transit_gcp.transit_gateway.gw_name
+  value       = var.deploy_gcp ? module.transit_gcp[0].transit_gateway.gw_name : "not deployed"
   sensitive   = true
 }
 

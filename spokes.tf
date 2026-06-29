@@ -55,6 +55,7 @@ resource "aviatrix_spoke_transit_attachment" "aws2" {
 # --- GCP Spoke (Frankfurt) ---
 
 resource "aviatrix_vpc" "spoke_gcp" {
+  count        = var.deploy_gcp ? 1 : 0
   cloud_type   = 4
   account_name = var.gcp_account_name
   name         = "spoke-gcp-vpc"
@@ -67,16 +68,18 @@ resource "aviatrix_vpc" "spoke_gcp" {
 }
 
 resource "aviatrix_spoke_gateway" "gcp" {
+  count        = var.deploy_gcp ? 1 : 0
   cloud_type   = 4
   account_name = var.gcp_account_name
   gw_name      = "spoke-gcp-gw"
-  vpc_id       = aviatrix_vpc.spoke_gcp.vpc_id
+  vpc_id       = aviatrix_vpc.spoke_gcp[0].vpc_id
   vpc_reg      = "${var.gcp_region}-b"
   gw_size      = var.spoke_gcp_gw_size
-  subnet       = aviatrix_vpc.spoke_gcp.subnets[0].cidr
+  subnet       = aviatrix_vpc.spoke_gcp[0].subnets[0].cidr
 }
 
 resource "aviatrix_spoke_transit_attachment" "gcp" {
-  spoke_gw_name   = aviatrix_spoke_gateway.gcp.gw_name
-  transit_gw_name = module.transit_gcp.transit_gateway.gw_name
+  count           = var.deploy_gcp ? 1 : 0
+  spoke_gw_name   = aviatrix_spoke_gateway.gcp[0].gw_name
+  transit_gw_name = module.transit_gcp[0].transit_gateway.gw_name
 }

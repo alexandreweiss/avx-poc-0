@@ -35,7 +35,8 @@ resource "aviatrix_smart_group" "spoke_aws2" {
 }
 
 resource "aviatrix_smart_group" "spoke_gcp" {
-  name = "spoke-gcp-vms"
+  count = var.deploy_gcp ? 1 : 0
+  name  = "spoke-gcp-vms"
 
   selector {
     match_expressions {
@@ -47,6 +48,37 @@ resource "aviatrix_smart_group" "spoke_gcp" {
 }
 
 # DCF policy list: allow east-west between all spokes, allow HTTP/HTTPS out
+
+locals {
+  gcp_sg_uuid = var.deploy_gcp ? aviatrix_smart_group.spoke_gcp[0].uuid : null
+
+  gcp_policies = var.deploy_gcp ? [
+    {
+      name     = "allow-aws1-to-gcp"
+      priority = 102
+      src      = aviatrix_smart_group.spoke_aws1.uuid
+      dst      = local.gcp_sg_uuid
+    },
+    {
+      name     = "allow-gcp-to-aws1"
+      priority = 103
+      src      = local.gcp_sg_uuid
+      dst      = aviatrix_smart_group.spoke_aws1.uuid
+    },
+    {
+      name     = "allow-aws2-to-gcp"
+      priority = 104
+      src      = aviatrix_smart_group.spoke_aws2.uuid
+      dst      = local.gcp_sg_uuid
+    },
+    {
+      name     = "allow-gcp-to-aws2"
+      priority = 105
+      src      = local.gcp_sg_uuid
+      dst      = aviatrix_smart_group.spoke_aws2.uuid
+    },
+  ] : []
+}
 
 resource "aviatrix_distributed_firewalling_policy_list" "poc" {
   policies {
@@ -71,48 +103,18 @@ resource "aviatrix_distributed_firewalling_policy_list" "poc" {
     dst_smart_groups = [aviatrix_smart_group.spoke_aws1.uuid]
   }
 
-  policies {
-    name     = "allow-aws1-to-gcp"
-    action   = "PERMIT"
-    priority = 102
-    protocol = "ANY"
-    logging  = true
+  dynamic "policies" {
+    for_each = local.gcp_policies
+    content {
+      name     = policies.value.name
+      action   = "PERMIT"
+      priority = policies.value.priority
+      protocol = "ANY"
+      logging  = true
 
-    src_smart_groups = [aviatrix_smart_group.spoke_aws1.uuid]
-    dst_smart_groups = [aviatrix_smart_group.spoke_gcp.uuid]
-  }
-
-  policies {
-    name     = "allow-gcp-to-aws1"
-    action   = "PERMIT"
-    priority = 103
-    protocol = "ANY"
-    logging  = true
-
-    src_smart_groups = [aviatrix_smart_group.spoke_gcp.uuid]
-    dst_smart_groups = [aviatrix_smart_group.spoke_aws1.uuid]
-  }
-
-  policies {
-    name     = "allow-aws2-to-gcp"
-    action   = "PERMIT"
-    priority = 104
-    protocol = "ANY"
-    logging  = true
-
-    src_smart_groups = [aviatrix_smart_group.spoke_aws2.uuid]
-    dst_smart_groups = [aviatrix_smart_group.spoke_gcp.uuid]
-  }
-
-  policies {
-    name     = "allow-gcp-to-aws2"
-    action   = "PERMIT"
-    priority = 105
-    protocol = "ANY"
-    logging  = true
-
-    src_smart_groups = [aviatrix_smart_group.spoke_gcp.uuid]
-    dst_smart_groups = [aviatrix_smart_group.spoke_aws2.uuid]
+      src_smart_groups = [policies.value.src]
+      dst_smart_groups = [policies.value.dst]
+    }
   }
 
   policies {

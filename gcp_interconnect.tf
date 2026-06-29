@@ -6,7 +6,7 @@ resource "google_compute_router" "interconnect" {
   count   = var.deploy_gcp_interconnect ? 1 : 0
   name    = "poc-interconnect-router"
   region  = var.gcp_region
-  network = module.transit_gcp.vpc.name
+  network = module.transit_gcp[0].vpc.name
   project = var.gcp_project_id
 
   bgp {

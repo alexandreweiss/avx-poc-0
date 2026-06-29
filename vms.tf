@@ -164,8 +164,9 @@ data "google_compute_image" "ubuntu" {
 
 # Firewall rule on the Aviatrix-managed GCP VPC
 resource "google_compute_firewall" "spoke_gcp_allow" {
+  count   = var.deploy_gcp ? 1 : 0
   name    = "spoke-gcp-allow-ssh-http"
-  network = aviatrix_vpc.spoke_gcp.name
+  network = aviatrix_vpc.spoke_gcp[0].name
   project = var.gcp_project_id
 
   allow {
@@ -181,9 +182,10 @@ resource "google_compute_firewall" "spoke_gcp_allow" {
 }
 
 resource "google_compute_instance" "spoke_gcp" {
+  count        = var.deploy_gcp ? 1 : 0
   name         = "spoke-gcp-vm"
   machine_type = var.spoke_gcp_vm_type
-  zone    = "${var.gcp_region}-b"
+  zone         = "${var.gcp_region}-b"
   project      = var.gcp_project_id
 
   boot_disk {
@@ -193,7 +195,7 @@ resource "google_compute_instance" "spoke_gcp" {
   }
 
   network_interface {
-    subnetwork = "projects/${var.gcp_project_id}/regions/${var.gcp_region}/subnetworks/${aviatrix_vpc.spoke_gcp.subnets[0].name}"
+    subnetwork = "projects/${var.gcp_project_id}/regions/${var.gcp_region}/subnetworks/${aviatrix_vpc.spoke_gcp[0].subnets[0].name}"
     access_config {}
   }
 

@@ -21,14 +21,15 @@ module "transit_aws" {
 module "transit_gcp" {
   source  = "terraform-aviatrix-modules/mc-transit/aviatrix"
   version = "9.0.0"
+  count   = var.deploy_gcp ? 1 : 0
 
-  cloud   = "gcp"
-  region  = var.gcp_region
+  cloud         = "gcp"
+  region        = var.gcp_region
   account       = var.gcp_account_name
   cidr          = var.transit_gcp_cidr
   name          = "transit-gcp-paris"
   instance_size = var.transit_gcp_gw_size
-  ha_gw = false
+  ha_gw         = false
 
   connected_transit = true
 }
@@ -36,8 +37,9 @@ module "transit_gcp" {
 # --- AWS ↔ GCP Transit Peering ---
 
 resource "aviatrix_transit_gateway_peering" "aws_gcp" {
+  count                 = var.deploy_gcp ? 1 : 0
   transit_gateway_name1 = module.transit_aws.transit_gateway.gw_name
-  transit_gateway_name2 = module.transit_gcp.transit_gateway.gw_name
+  transit_gateway_name2 = module.transit_gcp[0].transit_gateway.gw_name
 }
 
 # --- DCF: enable distributed firewalling on the controller ---
