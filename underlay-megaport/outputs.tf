@@ -1,10 +1,10 @@
-output "megaport_port_uid" {
-  description = "Megaport Port product UID"
+output "provider0_port_uid" {
+  description = "provider0 Port product UID"
   value       = megaport_port.this.product_uid
 }
 
-output "megaport_vxc_uid" {
-  description = "Megaport VXC product UID"
+output "provider0_vxc_uid" {
+  description = "provider0 VXC product UID"
   value       = megaport_vxc.aws_dx.product_uid
 }
 

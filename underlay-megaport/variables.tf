@@ -1,27 +1,27 @@
-# --- Megaport credentials ---
+# --- provider0 credentials ---
 
-variable "megaport_access_key" {
-  description = "Megaport API access key"
+variable "provider0_access_key" {
+  description = "provider0 API access key"
   type        = string
   sensitive   = true
 }
 
-variable "megaport_secret_key" {
-  description = "Megaport API secret key"
+variable "provider0_secret_key" {
+  description = "provider0 API secret key"
   type        = string
   sensitive   = true
 }
 
 # --- Port ---
 
-variable "megaport_location" {
-  description = "Megaport datacenter location name for the port (e.g. 'Equinix LD5'). Run: terraform plan and check megaport_location data source for available names near eu-west-1."
+variable "provider0_location" {
+  description = "provider0 datacenter location name for the port (e.g. 'Equinix LD5'). Run: terraform plan and check provider0_location data source for available names near eu-west-1."
   type        = string
   default     = "Equinix LD5"
 }
 
 variable "port_name" {
-  description = "Name for the Megaport port"
+  description = "Name for the provider0 port"
   type        = string
   default     = "poc-al-port-dublin"
 }
@@ -84,7 +84,7 @@ variable "bgp_asn_customer" {
 }
 
 variable "bgp_auth_key" {
-  description = "BGP MD5 auth key shared between AWS and Megaport"
+  description = "BGP MD5 auth key shared between AWS and provider0"
   type        = string
   sensitive   = true
   default     = ""

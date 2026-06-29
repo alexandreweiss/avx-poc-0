@@ -1,7 +1,7 @@
-# Megaport underlay for AWS Direct Connect (Step 1 + Step 2)
+# provider0 underlay for AWS Direct Connect (Step 1 + Step 2)
 #
 # Deploys:
-#   1. Megaport Port at a DX-connected facility near eu-west-1
+#   1. provider0 Port at a DX-connected facility near eu-west-1
 #   2. VXC from that port to AWS Direct Connect (Hosted Connection)
 #   3. Accepts the Hosted Connection in AWS
 #   4. Creates a Private VIF on the connection, pointing at the DX Gateway
@@ -10,17 +10,17 @@
 #   - aws_dx_gateway already exists (var.aws_dx_gateway_id)
 #   - VGW already associated with that DX Gateway
 #
-# To replace with Orange SDN underlay: delete this directory and create
-# underlay-orange/ with the same var.aws_dx_gateway_id input.
+# To replace with another underlay provider: delete this directory and create
+# underlay-<provider>/ with the same var.aws_dx_gateway_id input.
 
-# --- Discover Megaport location ---
+# --- Discover provider0 location ---
 
 data "megaport_location" "this" {
-  name    = var.megaport_location
+  name    = var.provider0_location
   has_mcr = false
 }
 
-# --- Megaport Port (AL's on-ramp) ---
+# --- provider0 Port (AL's on-ramp) ---
 
 resource "megaport_port" "this" {
   product_name           = var.port_name
@@ -63,7 +63,7 @@ resource "megaport_vxc" "aws_dx" {
 }
 
 # --- Accept the Hosted Connection in AWS ---
-# Megaport provisions it; AWS puts it in PENDING state until accepted.
+# provider0 provisions it; AWS puts it in PENDING state until accepted.
 
 resource "aws_dx_hosted_connection_accepter" "this" {
   connection_id = megaport_vxc.aws_dx.b_end.product_uid

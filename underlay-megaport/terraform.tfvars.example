@@ -1,7 +1,7 @@
 # Copy to terraform.tfvars and fill in real values
 
-megaport_access_key = "<megaport-api-access-key>"
-megaport_secret_key = "<megaport-api-secret-key>"
+provider0_access_key = "<provider0-api-access-key>"
+provider0_secret_key = "<provider0-api-secret-key>"
 
 # DX Gateway ID from root module: terraform -chdir=.. output dx_gateway_id
 aws_dx_gateway_id = "08af4365-b80d-42d3-8fcf-f775401d3731"
@@ -9,9 +9,9 @@ aws_dx_gateway_id = "08af4365-b80d-42d3-8fcf-f775401d3731"
 aws_account_id = "211098808963"
 aws_region     = "eu-west-1"
 
-megaport_location = "Equinix LD5"   # DX-connected, near eu-west-1
-port_speed        = 1000
-vxc_bandwidth     = 50
+provider0_location = "Equinix LD5"   # DX-connected, near eu-west-1
+port_speed         = 1000
+vxc_bandwidth      = 50
 
 bgp_asn_customer = 65000
 bgp_auth_key     = "<shared-bgp-secret>"
