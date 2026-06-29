@@ -85,7 +85,14 @@ IAM credentials (access key + secret) with permissions to create VPCs, EC2 insta
 
 #### GCP project (`europe-west3`)
 
-A GCP project in AL's organization with the **Compute Engine API** enabled. A service account with `Compute Admin` and `Service Account User` roles, and a JSON key file downloaded locally (set via `GOOGLE_APPLICATION_CREDENTIALS`).
+A GCP project in AL's organization with the **Compute Engine API** enabled.
+
+**GCP service account** — Aviatrix requires a dedicated GCP service account with specific IAM roles to manage resources in the project. Two options:
+
+- **Recommended (restricted)** — follow the Aviatrix documentation to create a service account with least-privilege access: [GCP account onboarding with restricted access](https://docs.aviatrix.com/docs/enterprise/9.0/guides/platform-administration/gcp-account-onboarding#create-a-service-account-with-restricted-access). Download the JSON key and set `GOOGLE_APPLICATION_CREDENTIALS=/path/to/key.json` before running Terraform.
+- **Broad access** — grant `Compute Admin` and `Service Account User` roles. Faster for a PoC but not recommended for production accounts.
+
+The service account must then be onboarded into the Aviatrix Controller (Controller → Onboarding → GCP) using the JSON key before running `terraform apply`.
 
 | Resource | Consumed | Default limit | Notes |
 |---|---|---|---|
@@ -94,7 +101,7 @@ A GCP project in AL's organization with the **Compute Engine API** enabled. A se
 | Static external IPs | **2** | 8 | 1 per Aviatrix gateway. |
 | Firewall rules | ~8 | 200 | Aviatrix creates `avx-*` rules automatically per VPC. |
 
-Both accounts must be onboarded into the Aviatrix Controller before running `terraform apply` (Controller → Onboarding → AWS / GCP).
+Both accounts must be onboarded into the Aviatrix Controller before running `terraform apply`.
 
 ---
 
