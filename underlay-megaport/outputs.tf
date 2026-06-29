@@ -8,22 +8,12 @@ output "provider0_vxc_uid" {
   value       = megaport_vxc.aws_dx.product_uid
 }
 
-output "dx_connection_id" {
-  description = "AWS DX Hosted Connection ID (accepted)"
-  value       = megaport_vxc.aws_dx.b_end.product_uid
-}
-
-output "private_vif_id" {
-  description = "AWS Private VIF ID"
-  value       = aws_dx_private_virtual_interface.this.id
-}
-
-output "private_vif_state" {
-  description = "Private VIF BGP state — should reach 'available' once BGP is up"
-  value       = aws_dx_private_virtual_interface.this.jumbo_frame_capable
+output "dx_hosted_vif_id" {
+  description = "AWS Hosted Private VIF ID (accepted)"
+  value       = aws_dx_hosted_private_virtual_interface_accepter.this.id
 }
 
 output "bgp_status_check" {
   description = "CLI command to check VIF BGP state"
-  value       = "aws directconnect describe-virtual-interfaces --virtual-interface-id ${aws_dx_private_virtual_interface.this.id} --region ${var.aws_region} --query 'virtualInterfaces[0].{state:virtualInterfaceState,bgpPeers:bgpPeers}'"
+  value       = "aws directconnect describe-virtual-interfaces --virtual-interface-id ${aws_dx_hosted_private_virtual_interface_accepter.this.virtual_interface_id} --region ${var.aws_region} --query 'virtualInterfaces[0].{state:virtualInterfaceState,bgpPeers:bgpPeers}'"
 }

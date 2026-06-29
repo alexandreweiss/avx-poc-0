@@ -17,7 +17,7 @@ provider "megaport" {
   access_key            = var.provider0_access_key
   secret_key            = var.provider0_secret_key
   accept_purchase_terms = true
-  # environment = "staging"  # uncomment to use provider0 staging/lab environment
+  environment           = "production"
 }
 
 provider "aws" {

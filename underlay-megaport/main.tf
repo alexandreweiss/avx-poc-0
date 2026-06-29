@@ -3,8 +3,7 @@
 # Deploys:
 #   1. provider0 Port at a DX-connected facility near eu-west-1
 #   2. VXC from that port to AWS Direct Connect (Hosted Connection)
-#   3. Accepts the Hosted Connection in AWS
-#   4. Creates a Private VIF on the connection, pointing at the DX Gateway
+#   3. Accepts the Hosted Private VIF in the customer AWS account
 #
 # Prerequisites (from root module):
 #   - aws_dx_gateway already exists (var.aws_dx_gateway_id)
@@ -16,8 +15,7 @@
 # --- Discover provider0 location ---
 
 data "megaport_location" "this" {
-  name    = var.provider0_location
-  has_mcr = false
+  name = var.provider0_location
 }
 
 # --- provider0 Port (AL's on-ramp) ---
@@ -31,7 +29,8 @@ resource "megaport_port" "this" {
 }
 
 # --- VXC to AWS Direct Connect ---
-# Creates a Hosted Connection that will appear in the AWS account for acceptance.
+# Creates a Hosted Connection in the customer AWS account via provider0.
+# connect_type = "AWSHC" → Hosted Connection (vs "AWS" for dedicated VIF).
 
 resource "megaport_vxc" "aws_dx" {
   product_name         = var.vxc_name
@@ -51,36 +50,22 @@ resource "megaport_vxc" "aws_dx" {
     partner = "aws"
     aws_config = {
       name          = var.vxc_name
-      account_id    = var.aws_account_id
+      owner_account = var.aws_account_id
       amazon_asn    = 64512
-      customer_asn  = var.bgp_asn_customer
+      asn           = var.bgp_asn_customer
       auth_key      = var.bgp_auth_key != "" ? var.bgp_auth_key : null
-      connect_type  = "HOSTED"
-      type          = "private"
-      prefixes      = ""
+      connect_type  = "AWSHC"
     }
   }
 }
 
-# --- Accept the Hosted Connection in AWS ---
-# provider0 provisions it; AWS puts it in PENDING state until accepted.
+# --- Accept the Hosted Private VIF in the customer AWS account ---
+# Megaport (as owner) creates the Hosted Private VIF pointing at our DX Gateway.
+# We accept it on the customer side.
 
-resource "aws_dx_hosted_connection_accepter" "this" {
-  connection_id = megaport_vxc.aws_dx.b_end.product_uid
+resource "aws_dx_hosted_private_virtual_interface_accepter" "this" {
+  virtual_interface_id = megaport_vxc.aws_dx.b_end.current_product_uid
+  dx_gateway_id        = var.aws_dx_gateway_id
 
   depends_on = [megaport_vxc.aws_dx]
-}
-
-# --- Private VIF on the accepted connection ---
-
-resource "aws_dx_private_virtual_interface" "this" {
-  connection_id    = megaport_vxc.aws_dx.b_end.product_uid
-  name             = var.vif_name
-  vlan             = var.vlan
-  address_family   = "ipv4"
-  bgp_asn          = var.bgp_asn_customer
-  bgp_auth_key     = var.bgp_auth_key != "" ? var.bgp_auth_key : null
-  dx_gateway_id    = var.aws_dx_gateway_id
-
-  depends_on = [aws_dx_hosted_connection_accepter.this]
 }
