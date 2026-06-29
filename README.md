@@ -68,6 +68,11 @@ Two cloud accounts from AL's tenant are required before deploying anything.
 
 IAM credentials (access key + secret) with permissions to create VPCs, EC2 instances, key pairs, security groups, and EIPs. The account must have enough quota for the resources below — check limits in **Service Quotas → EC2** before applying.
 
+**Aviatrix IAM roles** — Aviatrix requires two IAM roles (`aviatrix-role-ec2` and `aviatrix-role-app`) in the AWS account to allow the Controller to manage resources. Two options:
+
+- **Automatic** — if `create_iam_roles = true` in `controlplane/terraform.tfvars` (default), the controlplane module creates the roles automatically during Controller deployment.
+- **Manual** — if the roles already exist or need to be pre-created by AL's cloud team, follow the Aviatrix documentation: [IAM role setup](https://docs.aviatrix.com/docs/enterprise/9.0/reference/general/iam-role#notes-for-the-custom-iam-role-name-feature). Set `create_iam_roles = false` in `controlplane/terraform.tfvars` to skip automatic creation.
+
 | Resource | Consumed | Default limit | Notes |
 |---|---|---|---|
 | Elastic IPs (EIPs) | **3** | 5 per region | 1× transit gateway + 2× spoke gateways. If the Controller and CoPilot also run in this account, they consume 2 more EIPs — total 5, right at the default limit. Request a quota increase to 10 if needed. |
