@@ -1,3 +1,5 @@
+data "aws_caller_identity" "current" {}
+
 # --- EKS VPC (native AWS resources for full subnet-tag control) ---
 
 resource "aws_vpc" "eks" {
@@ -213,4 +215,47 @@ resource "aviatrix_spoke_transit_attachment" "eks" {
   count           = var.deploy_eks ? 1 : 0
   spoke_gw_name   = aviatrix_spoke_gateway.eks[0].gw_name
   transit_gw_name = module.transit_aws.transit_gateway.gw_name
+}
+
+# --- Enable k8s feature on the controller (required for k8s smart groups) ---
+
+resource "aviatrix_config_feature" "k8s" {
+  count        = var.deploy_eks ? 1 : 0
+  feature_name = "k8s"
+  is_enabled   = true
+}
+
+resource "aviatrix_config_feature" "k8s_dcf_policies" {
+  count        = var.deploy_eks ? 1 : 0
+  feature_name = "k8s_dcf_policies"
+  is_enabled   = true
+  depends_on   = [aviatrix_config_feature.k8s]
+}
+
+# --- Onboard EKS cluster into Aviatrix Controller ---
+# cluster_id = EKS cluster ARN
+# use_csp_credentials = true  →  reuses the onboarded AWS account credentials
+# network_mode = FLAT  →  VPC CNI, each pod has a real VPC IP
+
+resource "aviatrix_kubernetes_cluster" "eks" {
+  count              = var.deploy_eks ? 1 : 0
+  cluster_id         = aws_eks_cluster.this[0].arn
+  use_csp_credentials = true
+
+  cluster_details {
+    name                 = aws_eks_cluster.this[0].name
+    account_name         = var.aws_account_name
+    account_id           = data.aws_caller_identity.current.account_id
+    platform             = "eks"
+    network_mode         = "FLAT"
+    version              = aws_eks_cluster.this[0].version
+    vpc_id               = aws_vpc.eks[0].id
+    region               = var.aws_region
+    is_publicly_accessible = true
+  }
+
+  depends_on = [
+    aviatrix_spoke_transit_attachment.eks,
+    aviatrix_config_feature.k8s_dcf_policies,
+  ]
 }
