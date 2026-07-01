@@ -133,3 +133,24 @@ variable "vif_name" {
   type        = string
   default     = "poc-al-private-vif"
 }
+
+variable "wan_ip" {
+  description = "WAN interface IP/prefix for the Edge gateway (e.g. 1.2.3.4/30). Assigned by Megaport after MVE is live."
+  type        = string
+}
+
+variable "wan_gateway_ip" {
+  description = "WAN default gateway IP"
+  type        = string
+}
+
+variable "wan_public_ip" {
+  description = "WAN public IP (same as wan_ip host address for Megaport-assigned IPs)"
+  type        = string
+}
+
+variable "aws_dx_hosted_connection_id" {
+  description = "AWS hosted connection ID provisioned by Megaport (dxcon-xxxxxxxx). Visible in AWS Console → Direct Connect → Connections after VXC is live."
+  type        = string
+  default     = ""
+}

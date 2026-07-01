@@ -375,7 +375,9 @@ rm spoke-vms.pem
 
 ## Cost Estimate (CSP only)
 
-These are **cloud provider infrastructure costs only** — Aviatrix licensing is separate. All figures are approximate, based on on-demand pricing in `eu-west-1` (AWS) and `europe-west3` (GCP) as of mid-2025. Costs scale linearly with uptime.
+> **Aviatrix licensing:** Aviatrix offers a 30-day free trial — license costs are waived for the trial period. Only CSP infrastructure costs apply during a PoC.
+
+These are **cloud provider infrastructure costs only**. All figures are approximate, based on on-demand pricing in `eu-west-1` (AWS) and `europe-west3` (GCP) as of mid-2025. Costs scale linearly with uptime.
 
 ### AWS (`eu-west-1`)
 
@@ -462,22 +464,26 @@ Partner Interconnect supports capacities starting at 50 Mbps (VLAN attachment). 
 ./tests.sh
 ```
 
-### What it covers
+### Test checklist
 
-| # | Test | What it proves |
-|---|---|---|
-| 1 | Public nginx on all 3 VMs | Basic reachability from internet |
-| 2 | AWS Spoke 1 ↔ AWS Spoke 2 (private IP) | East-west across spokes, same cloud |
-| 3 | AWS → GCP (private IP) | Cross-cloud routing via transit peering |
-| 4 | GCP → AWS (private IP) | Bidirectional cross-cloud |
-| 5 | Cross-cloud ICMP + RTT | Latency baseline (~22 ms Dublin ↔ Frankfurt) |
-| 6 | HTTP egress from spoke | DCF AllWeb egress PERMIT policy active |
-| 7 | Controller API login | Aviatrix control plane reachable |
-| 8 | Traceroute AWS → GCP | Shows spoke gateway hop + encrypted tunnel (no-reply hops expected) |
+| # | Pass | Test | What it proves | Comments |
+|---|:----:|---|---|---|
+| 1 | [ ] | Public nginx — AWS Spoke 1 | Internet reachability, VM up | |
+| 2 | [ ] | Public nginx — AWS Spoke 2 | Internet reachability, VM up | |
+| 3 | [ ] | Public nginx — GCP Spoke | Internet reachability, VM up | |
+| 4 | [ ] | AWS Spoke 1 → AWS Spoke 2 (private IP) | East-west same cloud | |
+| 5 | [ ] | AWS Spoke 2 → AWS Spoke 1 (private IP) | Bidirectional same cloud | |
+| 6 | [ ] | AWS → GCP (private IP) | Cross-cloud via transit peering | |
+| 7 | [ ] | GCP → AWS (private IP) | Bidirectional cross-cloud | |
+| 8 | [ ] | Cross-cloud ICMP RTT | Latency baseline (~22 ms Dublin ↔ Frankfurt) | |
+| 9 | [ ] | HTTP egress from spoke | DCF AllWeb egress PERMIT active | |
+| 10 | [ ] | Controller API login | Aviatrix control plane reachable | |
+| 11 | [ ] | Traceroute AWS → GCP | Gateway hop visible, tunnel hops no-reply (expected) | |
+| 12 | [ ] | DCF default DENY | Direct spoke-to-spoke without policy blocked | |
 
-Expected output: **12 passed, 0 failed**.
+Expected: **12 passed, 0 failed**.
 
-The no-reply hops in traceroute are intentional — traffic is encapsulated in the Aviatrix encrypted tunnel after the first gateway hop.
+No-reply hops in traceroute are intentional — traffic is encapsulated in the Aviatrix encrypted tunnel after the first gateway hop.
 
 ---
 
