@@ -158,6 +158,7 @@ resource "aws_instance" "spoke_aws2" {
 # --- GCP Spoke VM ---
 
 data "google_compute_image" "ubuntu" {
+  count   = var.deploy_gcp ? 1 : 0
   family  = "ubuntu-2204-lts"
   project = "ubuntu-os-cloud"
 }
@@ -190,7 +191,7 @@ resource "google_compute_instance" "spoke_gcp" {
 
   boot_disk {
     initialize_params {
-      image = data.google_compute_image.ubuntu.self_link
+      image = data.google_compute_image.ubuntu[0].self_link
     }
   }
 

@@ -75,13 +75,17 @@ IAM credentials (access key + secret) with permissions to create VPCs, EC2 insta
 
 | Resource | Consumed | Default limit | Notes |
 |---|---|---|---|
-| Elastic IPs (EIPs) | **3** | 5 per region | 1× transit gateway + 2× spoke gateways. If the Controller and CoPilot also run in this account, they consume 2 more EIPs — total 5, right at the default limit. Request a quota increase to 10 if needed. |
-| VPCs | **4** | 5 per region | 1× transit VPC + 2× spoke VPCs + 1× controlplane VPC (if Controller deployed here). Request increase if other VPCs already exist. |
-| EC2 instances (running) | **5** | varies | 1× transit gateway (`c5.xlarge`) + 2× spoke gateways (`t3.small`) + 2× spoke VMs (`t3.micro`). Controlplane adds 2 more if deployed here. |
-| Internet Gateways | **4** | 5 per region | 1 per VPC. Same caveat as VPCs. |
+| Elastic IPs (EIPs) | **3–4** | 5 per region | 1× transit gateway + 2× spoke gateways. Optional EKS adds 1 NAT GW EIP. If the Controller and CoPilot also run in this account, they consume 2 more EIPs — total 5–6. Request a quota increase to 10. |
+| VPCs | **4–5** | 5 per region | 1× transit VPC + 2× spoke VPCs + 1× controlplane VPC (if Controller deployed here) + 1× EKS VPC (if `deploy_eks = true`). Request increase to 10 if needed. |
+| EC2 instances (running) | **5+** | varies | 1× transit gateway (`c5.xlarge`) + 2× spoke gateways (`t3.small`) + 2× spoke VMs (`t3.micro`) + EKS node group (2× `t3.medium`) if enabled. Controlplane adds 2 more if deployed here. |
+| Internet Gateways | **4–5** | 5 per region | 1 per VPC. EKS adds 1 more. Request increase if near limit. |
 | Security Groups | ~10 | 2500 | No concern in practice. |
 
-> **EIP limit is the most common deployment blocker.** Run `aws ec2 describe-addresses --region eu-west-1` to count currently allocated EIPs before applying.
+> **EIP and VPC limits are the most common deployment blockers.** Run `aws ec2 describe-addresses --region eu-west-1` and `aws ec2 describe-vpcs --region eu-west-1` to count before applying. If `deploy_eks = true`, you need headroom for 1 additional VPC and 1 additional EIP. Request increases via:
+> ```bash
+> aws service-quotas request-service-quota-increase --service-code vpc --quota-code L-F678F1CE --desired-value 10 --region eu-west-1
+> aws service-quotas request-service-quota-increase --service-code ec2 --quota-code L-0263D0A3 --desired-value 10 --region eu-west-1
+> ```
 
 #### GCP project (`europe-west3`)
 
@@ -227,6 +231,25 @@ Each page confirms the VM's cloud and region, and SSH commands are ready in the 
 | `spoke_vm_instance_type` | `t3.micro` | EC2 instance type for spoke VMs |
 | `spoke_gcp_vm_type` | `e2-micro` | GCP instance type for spoke VM |
 
+### Optional — EKS with Gatus dashboards
+
+| Variable | Default | Description |
+|---|---|---|
+| `deploy_eks` | `false` | Deploy EKS cluster with Gatus apps and k8s DCF smart groups |
+| `eks_cidr` | `10.22.0.0/23` | CIDR for the EKS VPC |
+| `eks_node_instance_type` | `t3.medium` | EC2 instance type for EKS managed nodes |
+
+When `deploy_eks = true`, Terraform deploys:
+- EKS cluster v1.32 in a dedicated VPC (10.22.0.0/23) with **VPC CNI** — each pod gets a real VPC IP, visible to Aviatrix as a network entity
+- Managed node group (2× `t3.medium`, private subnets) with NAT gateway for egress
+- Aviatrix spoke gateway in the EKS VPC, attached to the AWS transit
+- Two Gatus deployments: `gatus-aviatrix` (monitors `https://aviatrix.ai`) and `gatus-example` (monitors `https://www.example.com`), each in its own namespace
+- Two k8s-type Aviatrix smart groups matched by cluster + namespace
+- Two webgroups for domain-based SNI filtering (`aviatrix.ai`, `example.com`)
+- Two PERMIT HTTPS DCF policies (priority 210–211) scoped to each Gatus namespace → its webgroup
+
+**AWS quota requirements for EKS:** 1 additional VPC (total 5+) and 1 additional EIP (NAT gateway) beyond the base deployment. See the quota commands in the AWS quota table above.
+
 ### Optional — private underlay stubs
 
 | Variable | Default | Description |
@@ -254,6 +277,8 @@ Each page confirms the VM's cloud and region, and SSH commands are ready in the 
 | `ssh_private_key_path` | Path to generated `spoke-vms.pem` (chmod 600, gitignored) |
 | `dx_gateway_id` | AWS Direct Connect Gateway ID (if deployed) |
 | `gcp_interconnect_pairing_key` | GCP Partner Interconnect pairing key to give to Orange (if deployed) |
+| `eks_cluster_endpoint` | EKS cluster API endpoint (if `deploy_eks = true`) |
+| `eks_kubeconfig_cmd` | `aws eks update-kubeconfig` command to configure kubectl |
 
 ---
 
@@ -265,6 +290,8 @@ Distributed Cloud Firewall is enabled at the controller level and enforced at ea
 |---|---|---|
 | 100–105 | spoke-aws1 ↔ spoke-aws2 ↔ spoke-gcp (all pairs) | PERMIT ANY |
 | 200–201 | Anywhere → Public Internet via AllWeb (TCP 80, 443) | PERMIT |
+| 210 | gatus-aviatrix pods → Public Internet via `aviatrix.ai` webgroup (TCP 443) | PERMIT |
+| 211 | gatus-example pods → Public Internet via `example.com` webgroup (TCP 443) | PERMIT |
 | 65000 | Anywhere → Anywhere | DENY (logged) |
 
 All rules log matched flows. Flow logs are visible in CoPilot > Security > Distributed Cloud Firewall > Monitor.
