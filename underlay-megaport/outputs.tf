@@ -1,6 +1,6 @@
-output "provider0_port_uid" {
-  description = "provider0 Port product UID"
-  value       = megaport_port.this.product_uid
+output "aviatrix_edge_mve_uid" {
+  description = "Aviatrix Edge MVE product UID"
+  value       = megaport_mve.aviatrix_edge.product_uid
 }
 
 output "provider0_vxc_uid" {

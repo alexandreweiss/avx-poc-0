@@ -1,18 +1,30 @@
 # Copy to terraform.tfvars and fill in real values
 
-provider0_access_key = "<provider0-api-access-key>"
-provider0_secret_key = "<provider0-api-secret-key>"
+provider0_access_key = "<megaport-m2m-client-id>"
+provider0_secret_key = "<megaport-m2m-client-secret>"
 
 # DX Gateway ID from root module: terraform -chdir=.. output dx_gateway_id
-aws_dx_gateway_id = "08af4365-b80d-42d3-8fcf-f775401d3731"
+aws_dx_gateway_id = ""
+aws_account_id    = "211098808963"
+aws_region        = "eu-west-1"
 
-aws_account_id = "211098808963"
-aws_region     = "eu-west-1"
+# MVE location — must be a US market location (Ireland/UK not enabled)
+provider0_location = "Equinix Washington DC4"   # ID 67, co-located with AWS DX us-east-1
+mve_name           = "poc-al-avx-edge"
+mve_size           = "MEDIUM"
+port_term          = 1
 
-provider0_location = "Equinix Dublin DB3"   # Megaport exact name, closest to AWS eu-west-1
-port_speed         = 1000
-vxc_bandwidth      = 50
+# Aviatrix Edge bootstrap
+# Generate token: Aviatrix Controller → Edge → Gateways → Generate Token
+aviatrix_controller_ip = "54.75.173.51"
+aviatrix_edge_token    = "<one-time-enrollment-token>"
+aviatrix_edge_gw_name  = "edge-megaport-us"
 
+# VXC
+vxc_name      = "poc-al-edge-to-aws"
+vxc_bandwidth = 50
+vlan          = 100
+
+# BGP
 bgp_asn_customer = 65000
 bgp_auth_key     = "<shared-bgp-secret>"
-vlan             = 100
