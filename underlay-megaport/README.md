@@ -46,7 +46,7 @@ terraform -chdir=.. output dx_gateway_id
 
 ### 2. Megaport account
 
-AL needs an active Megaport account with billing configured and a physical presence (or colocation agreement) at a Megaport-connected facility near eu-west-1. Equinix LD5 (Slough, UK) is the recommended location — it is DX-enabled and low-latency to AWS eu-west-1.
+AL needs an active Megaport account with billing configured and a physical presence (or colocation agreement) at a Megaport-connected facility near eu-west-1. Equinix Dublin DB3 is the recommended location — same city as AWS eu-west-1, minimises latency. Equinix London LD5 is the fallback. Exact Megaport location names: `Equinix Dublin DB3` (ID 894), `Equinix London LD5` (ID 90).
 
 ### 3. Megaport M2M credentials
 
@@ -177,7 +177,7 @@ The main architecture (`dx_gateway.tf`, VGW association) requires zero changes.
 |---|---|---|
 | `provider0_access_key` | — | Megaport M2M Client ID |
 | `provider0_secret_key` | — | Megaport M2M Client Secret |
-| `provider0_location` | `Equinix LD5` | Megaport datacenter name |
+| `provider0_location` | `Equinix Dublin DB3` | Megaport datacenter name (exact string) |
 | `aws_dx_gateway_id` | — | DX Gateway ID from root module |
 | `aws_account_id` | `211098808963` | AWS account hosting the DX Gateway |
 | `aws_region` | `eu-west-1` | AWS region |

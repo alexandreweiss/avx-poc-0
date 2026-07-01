@@ -9,7 +9,7 @@ aws_dx_gateway_id = "08af4365-b80d-42d3-8fcf-f775401d3731"
 aws_account_id = "211098808963"
 aws_region     = "eu-west-1"
 
-provider0_location = "Equinix LD5"   # DX-connected, near eu-west-1
+provider0_location = "Equinix Dublin DB3"   # Megaport exact name, closest to AWS eu-west-1
 port_speed         = 1000
 vxc_bandwidth      = 50
 

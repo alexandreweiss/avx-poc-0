@@ -15,9 +15,9 @@ variable "provider0_secret_key" {
 # --- Port ---
 
 variable "provider0_location" {
-  description = "provider0 datacenter location name for the port (e.g. 'Equinix LD5'). Run: terraform plan and check provider0_location data source for available names near eu-west-1."
+  description = "provider0 datacenter location name for the port. Must match exact Megaport name. Dublin: 'Equinix Dublin DB3' (ID 894). London: 'Equinix London LD5' (ID 90)."
   type        = string
-  default     = "Equinix LD5"
+  default     = "Equinix Dublin DB3"
 }
 
 variable "port_name" {
