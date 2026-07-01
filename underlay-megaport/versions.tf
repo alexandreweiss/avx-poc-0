@@ -10,6 +10,10 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
+    aviatrix = {
+      source  = "AviatrixSystems/aviatrix"
+      version = "~> 9.0"
+    }
   }
 }
 
@@ -22,4 +26,10 @@ provider "megaport" {
 
 provider "aws" {
   region = var.aws_region
+}
+
+provider "aviatrix" {
+  controller_ip = var.aviatrix_controller_ip
+  username      = var.aviatrix_username
+  password      = var.aviatrix_password
 }

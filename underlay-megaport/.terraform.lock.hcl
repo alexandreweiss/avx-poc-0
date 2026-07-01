@@ -1,6 +1,20 @@
 # This file is maintained automatically by "terraform init".
 # Manual edits may be lost in future updates.
 
+provider "registry.terraform.io/aviatrixsystems/aviatrix" {
+  version     = "9.0.10"
+  constraints = "~> 9.0"
+  hashes = [
+    "h1:KRbl3L33iCLqkHJ0a6Jje9Y4c3lXjZrYA6tbVZIk9YA=",
+    "zh:33c3be18ee5fc51875ccbbeac87c1d7585b05aee4b225d3b7c515adb68702566",
+    "zh:39424210f54611f4677c405a55227ebd5088bc305023f2b28f2ce7dacd119fd5",
+    "zh:422311c344c54ff177d26f3f55fe0ac64545c13d3b37868123a5b51364a97f93",
+    "zh:786265d495f3c5aacd807391983637a1c74cff7f76b5646af0c2397951887b45",
+    "zh:ba5d937ef38199712b59651eab260891fde0f5034714c52d932ef429115b3155",
+    "zh:bc5b35f11ed3f6f6e05b1cd2decc001467b88fa40e63f697b3af2e25825dd736",
+  ]
+}
+
 provider "registry.terraform.io/hashicorp/aws" {
   version     = "5.100.0"
   constraints = "~> 5.0"
