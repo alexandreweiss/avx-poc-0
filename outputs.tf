@@ -50,6 +50,16 @@ output "dx_gateway_id" {
   value       = var.deploy_dx_gateway ? aws_dx_gateway.this[0].id : "not deployed"
 }
 
+output "eks_cluster_endpoint" {
+  description = "EKS cluster API endpoint"
+  value       = var.deploy_eks ? aws_eks_cluster.this[0].endpoint : "not deployed"
+}
+
+output "eks_kubeconfig_cmd" {
+  description = "Command to update kubeconfig for the EKS cluster"
+  value       = var.deploy_eks ? "aws eks update-kubeconfig --region ${var.aws_region} --name ${aws_eks_cluster.this[0].name}" : "not deployed"
+}
+
 output "gcp_interconnect_pairing_key" {
   description = "GCP Partner Interconnect pairing key to provide to partner (if deployed)"
   value       = var.deploy_gcp_interconnect ? google_compute_interconnect_attachment.partner[0].pairing_key : "not deployed"

@@ -164,6 +164,26 @@ variable "dx_gateway_name" {
 
 # --- Optional: GCP Partner Interconnect Gateway ---
 
+# --- Optional: EKS cluster with Gatus dashboards ---
+
+variable "deploy_eks" {
+  description = "Deploy EKS cluster with Gatus dashboard apps (requires AWS credentials with EKS permissions)"
+  type        = bool
+  default     = false
+}
+
+variable "eks_cidr" {
+  description = "CIDR for the EKS VPC"
+  type        = string
+  default     = "10.22.0.0/23"
+}
+
+variable "eks_node_instance_type" {
+  description = "EC2 instance type for EKS managed node group"
+  type        = string
+  default     = "t3.medium"
+}
+
 variable "deploy_gcp_interconnect" {
   description = "Deploy GCP VLAN attachments for Partner Interconnect (set true when partner circuit is available)"
   type        = bool
