@@ -257,5 +257,73 @@ resource "aviatrix_kubernetes_cluster" "eks" {
   depends_on = [
     aviatrix_spoke_transit_attachment.eks,
     aviatrix_config_feature.k8s_dcf_policies,
+    kubernetes_cluster_role_binding.aviatrix_controller,
   ]
+}
+
+# --- Grant Aviatrix controller IAM role access to the EKS cluster ---
+# Patches aws-auth ConfigMap so the controller's EC2 role can call the k8s API.
+
+resource "kubernetes_config_map_v1_data" "aws_auth" {
+  count = var.deploy_eks ? 1 : 0
+  metadata {
+    name      = "aws-auth"
+    namespace = "kube-system"
+  }
+  data = {
+    mapRoles = yamlencode([
+      {
+        rolearn  = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/aviatrix-role-ec2"
+        username = "aviatrix-controller"
+        groups   = ["system:masters"]
+      },
+      {
+        rolearn  = aws_iam_role.eks_nodes[0].arn
+        username = "system:node:{{EC2PrivateDNSName}}"
+        groups   = ["system:bootstrappers", "system:nodes"]
+      },
+    ])
+  }
+  force = true
+  depends_on = [aws_eks_cluster.this]
+}
+
+# --- RBAC: ClusterRole for Aviatrix controller to manage CRDs and read cluster state ---
+
+resource "kubernetes_cluster_role" "aviatrix_controller" {
+  count = var.deploy_eks ? 1 : 0
+  metadata { name = "aviatrix-controller" }
+
+  rule {
+    api_groups = [""]
+    resources  = ["namespaces", "nodes", "pods", "services", "endpoints"]
+    verbs      = ["get", "list", "watch"]
+  }
+  rule {
+    api_groups = ["discovery.k8s.io"]
+    resources  = ["endpointslices"]
+    verbs      = ["get", "list", "watch"]
+  }
+  rule {
+    api_groups = ["networking.aviatrix.com"]
+    resources  = ["firewallpolicies", "webgrouppolicies"]
+    verbs      = ["get", "list", "watch", "create", "update", "patch", "delete"]
+  }
+}
+
+resource "kubernetes_cluster_role_binding" "aviatrix_controller" {
+  count = var.deploy_eks ? 1 : 0
+  metadata { name = "aviatrix-controller" }
+
+  role_ref {
+    api_group = "rbac.authorization.k8s.io"
+    kind      = "ClusterRole"
+    name      = kubernetes_cluster_role.aviatrix_controller[0].metadata[0].name
+  }
+
+  subject {
+    kind      = "User"
+    name      = "aviatrix-controller"
+    api_group = "rbac.authorization.k8s.io"
+  }
 }
