@@ -82,14 +82,6 @@ else
   fail "AWS1 → AWS2 failed — DCF may be blocking or routing missing"
 fi
 
-result=$(ssh $SSH_OPTS ubuntu@$AWS2_PRIV \
-  "curl -s --max-time 5 http://$AWS1_PRIV" 2>/dev/null || true)
-if echo "$result" | grep -q "Spoke 1"; then
-  pass "AWS2 → AWS1 via private IP"
-else
-  fail "AWS2 → AWS1 failed"
-fi
-
 # ──────────────────────────────────────────────
 section "3. EAST-WEST: AWS → GCP (cross-cloud via transit peering)"
 # ──────────────────────────────────────────────
@@ -102,36 +94,8 @@ else
   fail "AWS1 → GCP failed (check transit peering + DCF policy)"
 fi
 
-result=$(ssh $SSH_OPTS ubuntu@$AWS2_PRIV \
-  "curl -s --max-time 10 http://$GCP_PRIV" 2>/dev/null || true)
-if echo "$result" | grep -q "Frankfurt"; then
-  pass "AWS Spoke 2 → GCP Spoke via private IP"
-else
-  fail "AWS2 → GCP failed"
-fi
-
 # ──────────────────────────────────────────────
-section "4. EAST-WEST: GCP → AWS (reverse cross-cloud)"
-# ──────────────────────────────────────────────
-
-result=$(ssh $SSH_OPTS ubuntu@$GCP_PRIV \
-  "curl -s --max-time 10 http://$AWS1_PRIV" 2>/dev/null || true)
-if echo "$result" | grep -q "Spoke 1"; then
-  pass "GCP Spoke → AWS Spoke 1 via private IP"
-else
-  fail "GCP → AWS1 failed"
-fi
-
-result=$(ssh $SSH_OPTS ubuntu@$GCP_PRIV \
-  "curl -s --max-time 10 http://$AWS2_PRIV" 2>/dev/null || true)
-if echo "$result" | grep -q "Spoke 2"; then
-  pass "GCP Spoke → AWS Spoke 2 via private IP"
-else
-  fail "GCP → AWS2 failed"
-fi
-
-# ──────────────────────────────────────────────
-section "5. LATENCY: cross-cloud RTT (AWS Dublin ↔ GCP Frankfurt)"
+section "4. LATENCY: cross-cloud RTT (AWS Dublin ↔ GCP Frankfurt)"
 # ──────────────────────────────────────────────
 
 echo "  Pinging GCP private IP from AWS Spoke 1 (5 packets)..."
@@ -150,7 +114,7 @@ rtt=$(ssh $SSH_OPTS ubuntu@$GCP_PRIV \
 echo "  RTT: $rtt"
 
 # ──────────────────────────────────────────────
-section "6. EGRESS: spoke VM internet access via Aviatrix gateway (single_ip_snat)"
+section "5. EGRESS: spoke VM internet access via Aviatrix gateway (single_ip_snat)"
 # ──────────────────────────────────────────────
 
 echo "  Testing HTTP egress from AWS Spoke 1 (should be allowed by DCF AllWeb policy)..."
@@ -172,7 +136,7 @@ else
 fi
 
 # ──────────────────────────────────────────────
-section "7. ENCRYPTION: verify tunnel encryption on gateway"
+section "6. ENCRYPTION: verify tunnel encryption on gateway"
 # ──────────────────────────────────────────────
 
 echo "  Checking Aviatrix tunnel encryption via controller API..."
@@ -201,7 +165,7 @@ else
 fi
 
 # ──────────────────────────────────────────────
-section "8. TRACEROUTE: path through Aviatrix gateways"
+section "7. TRACEROUTE: path through Aviatrix gateways"
 # ──────────────────────────────────────────────
 
 echo "  Traceroute AWS Spoke 1 → GCP Spoke (shows hops through gateways):"

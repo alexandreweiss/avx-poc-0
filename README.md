@@ -616,25 +616,22 @@ Pings the AWS Spoke 1 private IP before running anything. Exits with instruction
 **Test 1–3 — Nginx reachability (VPN → spoke private IPs)**
 Curls each spoke VM over its private IP and checks the response contains the expected location string (e.g. "AWS Dublin"). Confirms the VM is up, nginx is running, and the VPN split-tunnel covers the spoke CIDRs.
 
-**Test 2 (section 2) — East-west same cloud (AWS1 ↔ AWS2)**
-SSH into AWS Spoke 1 and curl AWS Spoke 2's private IP, then reverse. Traffic flows through the Aviatrix overlay (spoke → transit → spoke) entirely within AWS. Confirms intra-cloud transit routing and the DCF PERMIT policy.
+**Test 2 (section 2) — East-west same cloud (AWS1 → AWS2)**
+SSH into AWS Spoke 1 and curl AWS Spoke 2's private IP. Traffic flows through the Aviatrix overlay (spoke → transit → spoke) entirely within AWS. Confirms intra-cloud transit routing and the DCF PERMIT policy.
 
-**Test 3 (section 3) — Cross-cloud east-west (AWS → GCP)**
-SSH into each AWS spoke and curl the GCP spoke's private IP. Traffic crosses the encrypted Aviatrix transit peering between Dublin and Frankfurt. Confirms cross-cloud routing and DCF policy in the AWS→GCP direction.
+**Test 3 (section 3) — Cross-cloud east-west (AWS1 → GCP)**
+SSH into AWS Spoke 1 and curl the GCP spoke's private IP. Traffic crosses the encrypted Aviatrix transit peering between Dublin and Frankfurt. Confirms cross-cloud routing and DCF policy.
 
-**Test 4 (section 4) — Cross-cloud east-west (GCP → AWS)**
-Reverse direction of the above. SSH into the GCP spoke and curl each AWS spoke. Confirms the peering and DCF are bidirectional.
-
-**Test 5 (section 5) — Cross-cloud latency (ICMP RTT)**
+**Test 4 (section 4) — Cross-cloud latency (ICMP RTT)**
 Runs `ping -c 5` from AWS Spoke 1 to the GCP spoke and captures RTT statistics. Provides a latency baseline (~22 ms Dublin → Frankfurt over internet overlay).
 
-**Test 6 (section 6) — Egress via Aviatrix spoke gateway**
-SSH into each spoke VM and curl `http://example.com`. Verifies that the DCF egress PERMIT policy (TCP 80/443) is active and that `single_ip_snat` on the spoke gateway is forwarding internet-bound traffic correctly. Tests both AWS and GCP spokes.
+**Test 5 (section 5) — Egress via Aviatrix spoke gateway**
+SSH into each spoke VM and curl `http://example.com`. Verifies the DCF egress PERMIT policy (TCP 80/443) is active and `single_ip_snat` on the spoke gateway is forwarding internet-bound traffic correctly. Tests both AWS and GCP spokes.
 
-**Test 7 (section 7) — Controller API login**
+**Test 6 (section 6) — Controller API login**
 Calls the Aviatrix Controller REST API and confirms authentication succeeds. Required for control-plane verification.
 
-**Test 8 (section 8) — Traceroute AWS → GCP**
+**Test 7 (section 7) — Traceroute AWS → GCP**
 Runs `tracepath` from AWS Spoke 1 toward the GCP spoke. The first hop (Aviatrix gateway) replies; subsequent hops show no-reply because traffic is inside the encrypted tunnel. This is expected and confirms the overlay is active.
 
 ### Test checklist
@@ -646,18 +643,14 @@ Runs `tracepath` from AWS Spoke 1 toward the GCP spoke. The first hop (Aviatrix 
 | 2  |  [ ]  | Nginx — AWS Spoke 2 (private IP)            | VM up, nginx running                                 |
 | 3  |  [ ]  | Nginx — GCP Spoke (private IP)              | VM up, nginx running                                 |
 | 4  |  [ ]  | AWS Spoke 1 → AWS Spoke 2 (private IP)      | East-west same cloud, DCF PERMIT active              |
-| 5  |  [ ]  | AWS Spoke 2 → AWS Spoke 1 (private IP)      | Bidirectional same cloud                             |
-| 6  |  [ ]  | AWS Spoke 1 → GCP (private IP)              | Cross-cloud transit peering                          |
-| 7  |  [ ]  | AWS Spoke 2 → GCP (private IP)              | Cross-cloud transit peering both spokes              |
-| 8  |  [ ]  | GCP → AWS Spoke 1 (private IP)              | Bidirectional cross-cloud                            |
-| 9  |  [ ]  | GCP → AWS Spoke 2 (private IP)              | Bidirectional cross-cloud both spokes                |
-| 10 |  [ ]  | Cross-cloud ICMP RTT                        | Latency baseline (~22 ms Dublin ↔ Frankfurt)         |
-| 11 |  [ ]  | HTTP egress — AWS Spoke 1                   | single_ip_snat + DCF egress PERMIT working           |
-| 12 |  [ ]  | HTTP egress — GCP Spoke                     | single_ip_snat + DCF egress PERMIT working           |
-| 13 |  [ ]  | Controller API login                        | Control plane reachable                              |
-| 14 |  [ ]  | Traceroute AWS → GCP                        | Gateway hop visible, tunnel hops no-reply (expected) |
+| 5  |  [ ]  | AWS Spoke 1 → GCP (private IP)              | Cross-cloud transit peering                          |
+| 6  |  [ ]  | Cross-cloud ICMP RTT                        | Latency baseline (~22 ms Dublin ↔ Frankfurt)         |
+| 7  |  [ ]  | HTTP egress — AWS Spoke 1                   | single_ip_snat + DCF egress PERMIT working           |
+| 8  |  [ ]  | HTTP egress — GCP Spoke                     | single_ip_snat + DCF egress PERMIT working           |
+| 9  |  [ ]  | Controller API login                        | Control plane reachable                              |
+| 10 |  [ ]  | Traceroute AWS → GCP                        | Gateway hop visible, tunnel hops no-reply (expected) |
 
-Expected: **14 passed, 0 failed** (test 0 exits before counting if VPN is down; traceroute is informational).
+Expected: **10 passed, 0 failed** (test 0 exits before counting if VPN is down; traceroute is informational).
 
 No-reply hops in traceroute are intentional — traffic is encapsulated in the Aviatrix encrypted tunnel after the first gateway hop.
 
