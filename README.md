@@ -12,13 +12,31 @@ This PoC demonstrates four capabilities in a single deployable lab:
 
 **Automation** — The entire multicloud network (two cloud providers, two transit gateways, three spokes, peering, DCF policies, test VMs) is deployed from a single `terraform apply`. Infrastructure is version-controlled, repeatable, and self-documenting.
 
-**Visibility** — Aviatrix CoPilot provides a unified topology view spanning both AWS and GCP, flow logs from every gateway, latency metrics between clouds, and a single pane of glass for operations.
+**Visibility** — Aviatrix CoPilot provides a unified topology view spanning both AWS and GCP, flow logs from every gateway, latency metrics between clouds, and a single pane of glass for operations. The Aviatrix MCP server extends this visibility to natural-language queries — ask about latency between spokes, active flows, or DCF hit counts directly from an AI client without touching the CLI.
 
 **Security** — Distributed Cloud Firewall (DCF) enforces east-west segmentation between spoke workloads with smart group tagging (no IP management), default deny, and per-flow logging. All policies are defined in code alongside the infrastructure.
 
 **Encryption** — All data-plane traffic traversing the Aviatrix overlay is encrypted end-to-end with AES-256 / High-Performance Encryption (HPE). The transit peering between AWS Dublin and GCP Frankfurt is fully encrypted regardless of the underlay.
 
 **Private underlay ready** — The AWS Direct Connect Gateway and GCP Partner Interconnect stubs are included in this repo and can be activated with a single variable flip (`deploy_dx_gateway = true`, `deploy_gcp_interconnect = true`) once Orange's circuits toward AL are provisioned. The overlay and DCF policies require no changes.
+
+---
+
+## Table of Contents
+
+- [Architecture](#architecture)
+- [Prerequisites](#prerequisites)
+- [Quick Start](#quick-start)
+- [Variables Reference](#variables-reference)
+- [Outputs](#outputs)
+- [DCF Policy Detail](#dcf-policy-detail)
+- [Activating the Orange Underlay](#activating-the-orange-underlay)
+- [Deploy the Controller (optional)](#deploy-the-controller-optional)
+- [Teardown](#teardown)
+- [Cost Estimate](#cost-estimate-csp-only)
+- [Tests](#tests)
+- [Aviatrix MCP Server Demo](#aviatrix-mcp-server-demo)
+- [Known Gotchas](#known-gotchas)
 
 ---
 
@@ -62,6 +80,8 @@ DCF policy:       east-west PERMIT (all spokes ↔ all spokes) · default DENY
 | --------------- | ----------------------------------------------------------------------------------------------- |
 | `controlplane/` | Deploy Aviatrix Controller + CoPilot on AWS (one-time, skip if a Controller is already running) |
 | `.` (repo root) | Deploy the multicloud network against an existing Controller                                    |
+
+[↑ Back to top](#table-of-contents)
 
 ---
 
@@ -151,6 +171,8 @@ Either deploy one via `controlplane/` (see [Deploy the Controller](#deploy-the-c
 - Name of the AWS account onboarded in the Controller (Controller > Accounts > AWS)
 - Name of the GCP account onboarded in the Controller (Controller > Accounts > GCP)
 
+[↑ Back to top](#table-of-contents)
+
 ---
 
 ## Quick Start
@@ -210,6 +232,8 @@ terraform output nginx_url_gcp
 ```
 
 Each page confirms the VM's cloud and region. SSH commands (private IP, key at `spoke-vms.pem`) are in the outputs.
+
+[↑ Back to top](#table-of-contents)
 
 ---
 
@@ -280,6 +304,8 @@ When `deploy_eks = true`, Terraform deploys:
 | `gcp_interconnect_bandwidth`   | `BPS_1G`         | Bandwidth for VLAN attachment                             |
 | `gcp_interconnect_pairing_key` | `""`             | Pairing key from partner (leave empty on first apply)     |
 
+[↑ Back to top](#table-of-contents)
+
 ---
 
 ## Outputs
@@ -301,6 +327,8 @@ When `deploy_eks = true`, Terraform deploys:
 | `eks_kubeconfig_cmd`           | `aws eks update-kubeconfig` command to configure kubectl                         |
 | `gatus_aviatrix_url`           | Gatus aviatrix.ai dashboard pod URL — accessible via VPN + kubectl (if EKS)     |
 | `gatus_example_url`            | Gatus example.com dashboard pod URL — accessible via VPN + kubectl (if EKS)     |
+
+[↑ Back to top](#table-of-contents)
 
 ---
 
@@ -324,6 +352,8 @@ Distributed Cloud Firewall is enabled at the controller level and enforced at ea
 All rules log matched flows. Flow logs visible in CoPilot > Security > Distributed Cloud Firewall > Monitor.
 
 > Priority 210 is a **DENY** for `gatus-aviatrix` pods — intentional demo of domain-level blocking. Priority 211 is a **PERMIT** for `gatus-example` pods, toggled by `allow_example_com_egress = false` to demonstrate default-deny blocking.
+
+[↑ Back to top](#table-of-contents)
 
 ---
 
@@ -372,6 +402,8 @@ terraform apply
 
 The attachment transitions from `PENDING_CUSTOMER` to `ACTIVE` once Orange provisions their side of the circuit.
 
+[↑ Back to top](#table-of-contents)
+
 ---
 
 ## Deploy the Controller (optional)
@@ -406,6 +438,8 @@ After apply, note the outputs:
 
 Wait ~5 minutes for Controller bootstrap to complete before running the root module.
 
+[↑ Back to top](#table-of-contents)
+
 ---
 
 ## Teardown
@@ -426,6 +460,8 @@ Remove the generated SSH key:
 ```bash
 rm spoke-vms.pem
 ```
+
+[↑ Back to top](#table-of-contents)
 
 ---
 
@@ -515,6 +551,8 @@ Partner Interconnect supports capacities starting at 50 Mbps (VLAN attachment). 
 > **Tip — stop instead of destroy:** Aviatrix gateways are EC2/GCE instances. Stopping them overnight via the Controller halts compute billing while preserving configuration. EIPs and static IPs continue to accrue a small idle charge (~$0.005/hr per IP) unless released. GCP VLAN attachment billing continues even when gateways are stopped.
 
 > **Data transfer:** Cross-cloud egress (AWS → internet toward GCP) is billed by AWS at ~$0.09/GB. For a PoC with light test traffic this is negligible (<$1 total). With private underlay active, egress over the circuit drops to ~$0.02/GB.
+
+[↑ Back to top](#table-of-contents)
 
 ---
 
@@ -617,6 +655,8 @@ Expected: **14 passed, 0 failed** (test 0 exits before counting if VPN is down; 
 
 No-reply hops in traceroute are intentional — traffic is encapsulated in the Aviatrix encrypted tunnel after the first gateway hop.
 
+[↑ Back to top](#table-of-contents)
+
 ---
 
 ## Aviatrix MCP Server Demo
@@ -681,6 +721,8 @@ List all active encrypted tunnels on the AWS transit gateway and their current s
 | Smart group inspection | Tag-based workload identity, no IP management |
 | Tunnel encryption status | HPE (High-Performance Encryption) visibility |
 
+[↑ Back to top](#table-of-contents)
+
 ---
 
 ## Known Gotchas
@@ -690,3 +732,5 @@ List all active encrypted tunnels on the AWS transit gateway and their current s
 - **GCP spoke VPCs**: only `subnets[0]` exists — both the Aviatrix gateway and the workload VM use it. There is no `subnets[1]`.
 - GCP `google_compute_interconnect_attachment` with `type = "PARTNER"` and an empty `pairing_key` is valid on first create — the attachment enters `PENDING_CUSTOMER` state awaiting the partner
 - After `controlplane/` apply, wait ~5 minutes for Controller bootstrap before running the root module
+
+[↑ Back to top](#table-of-contents)
