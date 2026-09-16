@@ -94,6 +94,10 @@ EKS = Elastic Kubernetes Service (AWS)
 
 ## Prerequisites
 
+### AI assistant
+
+An AI assistant (Claude or equivalent) is **strongly recommended** to get the full value of this PoC — particularly for the [Aviatrix MCP Server](#aviatrix-mcp-server-demo) demo, natural-language visibility queries, and assisted troubleshooting. The AI assistant must be supplied by AL as part of their tooling.
+
 ### AL tenant accounts
 
 Two cloud accounts from AL's tenant are required before deploying anything.
@@ -177,10 +181,6 @@ Either deploy one via `controlplane/` (see [Deploy the Controller](#deploy-the-c
 - Admin password
 - Name of the AWS account onboarded in the Controller (Controller > Accounts > AWS)
 - Name of the GCP account onboarded in the Controller (Controller > Accounts > GCP)
-
-### AI assistant
-
-An AI assistant (Claude or equivalent) is **strongly recommended** to get the full value of this PoC — particularly for the [Aviatrix MCP Server](#aviatrix-mcp-server-demo) demo, natural-language visibility queries, and assisted troubleshooting. The AI assistant must be supplied by AL as part of their tooling.
 
 [↑ Back to top](#table-of-contents)
 
