@@ -621,35 +621,13 @@ No-reply hops in traceroute are intentional — traffic is encapsulated in the A
 
 ## Aviatrix MCP Server Demo
 
-The [Aviatrix MCP server](https://github.com/aviatrix/aviatrix-mcp) exposes Aviatrix controller capabilities as tools that any MCP-compatible AI client (Claude Desktop, Claude Code, Cursor, etc.) can call. This PoC is a good vehicle to demonstrate natural-language network operations against a live multicloud environment.
+The Aviatrix MCP server exposes Aviatrix controller and CoPilot capabilities as tools that any MCP-compatible AI client (Claude Desktop, Claude Code, Cursor, etc.) can call, enabling natural-language network operations against a live multicloud environment.
 
-### Setup
-
-1. Install and configure the Aviatrix MCP server, pointing it at the controller:
-
-```json
-{
-  "mcpServers": {
-    "aviatrix": {
-      "command": "npx",
-      "args": ["-y", "@aviatrix/mcp-server"],
-      "env": {
-        "AVIATRIX_CONTROLLER_IP": "<controller-ip>",
-        "AVIATRIX_USERNAME": "admin",
-        "AVIATRIX_PASSWORD": "<password>"
-      }
-    }
-  }
-}
-```
-
-2. Add the config to your MCP client (Claude Desktop: `~/Library/Application Support/Claude/claude_desktop_config.json`; Claude Code: `.claude/mcp.json` in the repo root).
-
-3. Verify the server connects — the client should list Aviatrix tools in its tool palette.
+**Access:** https://platform-login.mcp.aviatrix.com/
 
 ### Demo prompts
 
-The prompts below demonstrate the four PoC pillars (automation, visibility, security, encryption) through conversational queries rather than CLI commands.
+Connect the MCP server to an AI client, then try the prompts below against the deployed PoC.
 
 #### Observability — latency and topology
 
@@ -668,7 +646,7 @@ What is the current throughput and packet loss on the transit peering between AW
 #### Security — DCF policy inspection
 
 ```
-What are the current DCF rules that allow traffic between the aws1 spoke and the gcp spoke?
+What are the current DCF rules allowing traffic between the aws1 spoke and the gcp spoke?
 ```
 
 ```
@@ -693,18 +671,6 @@ Are all transit tunnels between AWS Dublin and GCP Frankfurt currently encrypted
 List all active encrypted tunnels on the AWS transit gateway and their current state.
 ```
 
-#### Change via natural language (optional — requires write-enabled MCP)
-
-```
-Add a new DCF DENY rule at priority 98 blocking TCP port 8080 from spoke-aws1-vms to spoke-gcp-vms, with logging enabled.
-```
-
-```
-Update the allow-spoke-vms-egress DCF policy to also permit UDP port 53 for DNS resolution.
-```
-
-> Write operations require the MCP server to be configured with write permissions. For a read-only demo, set the server to read-only mode to prevent accidental changes.
-
 ### What this demonstrates
 
 | Query theme | Aviatrix capability shown |
@@ -714,7 +680,6 @@ Update the allow-spoke-vms-egress DCF policy to also permit UDP port 53 for DNS 
 | DCF policy listing | Distributed Cloud Firewall policy engine |
 | Smart group inspection | Tag-based workload identity, no IP management |
 | Tunnel encryption status | HPE (High-Performance Encryption) visibility |
-| Natural-language changes | Infra-as-conversation — policy changes without CLI |
 
 ---
 
