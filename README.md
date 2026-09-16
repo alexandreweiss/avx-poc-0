@@ -212,25 +212,15 @@ terraform apply
 
 Deployment takes approximately 20–30 minutes. Gateway provisioning is the bottleneck.
 
-### 3. Connect to VPN
+### 3. Verify
 
-All spoke VMs have private IPs only. To reach them you need an active Aviatrix User VPN connection.
-
-```bash
-terraform output vpn_gateway_ip   # server address for your OpenVPN client
-```
-
-Import the `.ovpn` profile downloaded from the Controller into any OpenVPN-compatible client and connect before running the test suite or accessing nginx pages.
-
-### 4. Verify
-
-Run the full automated test suite (VPN must be connected first):
+Run the full automated test suite from a host with private network access to the spoke subnets:
 
 ```bash
 AVX_PASSWORD=<controller-admin-password> ./tests.sh
 ```
 
-Or check individual nginx pages (reachable via VPN):
+Or check individual nginx pages:
 
 ```bash
 terraform output nginx_url_aws1
