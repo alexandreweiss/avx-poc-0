@@ -30,7 +30,7 @@ This PoC demonstrates four capabilities in a single deployable lab:
      │                                          │
      │   AWS eu-west-1 (Dublin)                 │   GCP europe-west3 (Frankfurt)
      │  ┌─────────────────────────┐             │  ┌─────────────────────────┐
-     │  │  transit-aws-dublin     │◄────────────┼─►│  transit-gcp-paris      │
+     │  │  transit-aws-dublin     │◄────────────┼─►│  transit-gcp-frankfurt  │
      │  │  10.10.0.0/23           │  encrypted  │  │  10.30.0.0/23           │
      │  │  c5.xlarge              │  peering    │  │  n1-standard-2          │
      │  │                         │             │  │                         │
@@ -40,13 +40,20 @@ This PoC demonstrates four capabilities in a single deployable lab:
      │  │  spoke-aws2  10.21/23   │             │
      │  │  └─ EC2 Ubuntu + nginx  │             │
      │  │                         │             │
-     │  │  [AWS DX Gateway]       │             │  [GCP Partner Interconnect]
-     │  │  (optional stub)        │◄────────────┼─►(optional stub)
+     │  │  [EKS]  10.22/23        │             │  [GCP Partner Interconnect]
+     │  │  └─ Gatus pods          │◄────────────┼─►(optional stub)
+     │  │  └─ Aviatrix spoke gw   │             │
+     │  │  (optional, deploy_eks) │             │
+     │  │                         │             │
+     │  │  [AWS DX Gateway]       │             │
+     │  │  (optional stub)        │             │
      │  └─────────────────────────┘             │
      └──────────────────────────────────────────┘
 
 DCF smart groups: spoke-aws1-vms · spoke-aws2-vms · spoke-gcp-vms
+                  [eks-pods — optional, deploy_eks=true]
 DCF policy:       east-west PERMIT (all spokes ↔ all spokes) · default DENY
+                  egress PERMIT TCP 80/443 from spoke VMs via gateway (single_ip_snat)
 ```
 
 ### Two Terraform roots
