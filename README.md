@@ -506,16 +506,17 @@ These are **cloud provider infrastructure costs only**. All figures are approxim
 
 ### Summary
 
-| Scenario                          | Compute AWS+GCP | DX 50 Mbps (AWS) | Partner IC 50 Mbps (GCP) | **Total CSP/month** |
-| --------------------------------- | --------------- | ---------------- | ------------------------ | ------------------- |
-| PoC only — internet overlay       | ~$369           | —                | —                        | **~$369**           |
-| + AWS Direct Connect stub         | ~$369           | ~$22             | —                        | **~$391**           |
-| + GCP Partner Interconnect stub   | ~$369           | —                | ~$47                     | **~$416**           |
-| Full private underlay (both)      | ~$369           | ~$22             | ~$47                     | **~$438**           |
+| Component                                           | Monthly cost (est.) |
+| --------------------------------------------------- | ------------------- |
+| AWS compute (transit + 2× spokes + 2× VMs)          | ~$192               |
+| GCP compute (transit + spoke + VM)                  | ~$177               |
+| AWS Direct Connect — 50 Mbps hosted (Equinix PA3)   | ~$22                |
+| GCP Partner Interconnect — 50 Mbps VLAN + router    | ~$47                |
+| **Total CSP**                                       | **~$438/month**     |
 
-DX detail: $0.03/hr × 730 hrs hosted connection (Equinix PA3, Paris) — AWS DX Gateway and VGW are no charge. Data transfer out $0.02/GB (usage-based).
+DX: $0.03/hr × 730 hrs. DX Gateway and VGW no charge. Data transfer out $0.02/GB (usage-based).
 
-GCP detail: $0.05417/hr × 730 hrs VLAN attachment + $0.01/hr Cloud Router ≈ $47/month. Partner capacity (Orange) billed separately. Egress $0.02/GB (usage-based).
+GCP IC: $0.05417/hr × 730 hrs VLAN + $0.01/hr Cloud Router. Partner capacity (Orange) billed separately. Egress $0.02/GB (usage-based).
 
 > **Disclaimer:** All pricing figures in this section are provided for informational purposes only and were computed by AI. They may not reflect current list prices, regional variations, or negotiated rates. Always verify against official AWS, GCP, and partner pricing pages before making financial decisions.
 
