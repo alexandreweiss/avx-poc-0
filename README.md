@@ -618,6 +618,8 @@ Connect the MCP server to an AI client, then try the prompts below against the d
 Using the Aviatrix MCP, can you calculate the latency between the aws1 spoke gateway and the gcp spoke gateway?
 ```
 
+![Latency query result](images/ai-1.jpg)
+
 ```
 Show me the full network topology for this multicloud environment. Which gateways are peered and what are their CIDRs?
 ```
@@ -626,11 +628,16 @@ Show me the full network topology for this multicloud environment. Which gateway
 What is the current throughput and packet loss on the transit peering between AWS Dublin and GCP Frankfurt?
 ```
 
+![Throughput and resource utilization query result](images/ai-3.jpg)
+![Resource utilization (continued)](images/ai-4.jpg)
+
 #### Security — DCF policy inspection
 
 ```
 What are the current DCF rules allowing traffic between the aws1 spoke and the gcp spoke?
 ```
+
+![DCF rules query result](images/ai-2.jpg)
 
 ```
 List all DENY rules currently active in the Distributed Cloud Firewall and explain what traffic they block.
