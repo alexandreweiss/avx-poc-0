@@ -43,30 +43,32 @@ This PoC demonstrates four capabilities in a single deployable lab:
 ## Architecture
 
 ```
-                Orange Private Underlay
-     ┌──────────────────────────────────────────┐
-     │                                          │
-     │   AWS eu-west-1 (Dublin)                 │   GCP europe-west3 (Frankfurt)
-     │  ┌─────────────────────────┐             │  ┌─────────────────────────┐
-     │  │  transit-aws-dublin     │◄────────────┼─►│  transit-gcp-frankfurt  │
-     │  │  10.10.0.0/23           │  encrypted  │  │  10.30.0.0/23           │
-     │  │  c5.xlarge              │  peering    │  │  n1-standard-2          │
-     │  │                         │             │  │                         │
-     │  │  spoke-aws1  10.20/23   │             │  │  spoke-gcp   10.31/23   │
-     │  │  └─ EC2 Ubuntu + nginx  │             │  │  └─ GCE Ubuntu + nginx  │
-     │  │                         │             │  └─────────────────────────┘
-     │  │  spoke-aws2  10.21/23   │             │
-     │  │  └─ EC2 Ubuntu + nginx  │             │
-     │  │                         │             │
-     │  │  [EKS]  10.22/23        │             │  [GCP Partner Interconnect]
-     │  │  └─ Gatus pods          │◄────────────┼─►(optional stub)
-     │  │  └─ Aviatrix spoke gw   │             │
-     │  │  (optional, deploy_eks) │             │
-     │  │                         │             │
-     │  │  [AWS DX Gateway]       │             │
-     │  │  (optional stub)        │             │
-     │  └─────────────────────────┘             │
-     └──────────────────────────────────────────┘
+  AWS eu-west-1 (Dublin)                        GCP europe-west3 (Frankfurt)
+  ┌───────────────────────────┐              ┌───────────────────────────┐
+  │  transit-aws-dublin       │◄─ internet ─►│  transit-gcp-frankfurt    │
+  │  10.10.0.0/23  c5.xlarge  │  encrypted   │  10.30.0.0/23  n1-std-2  │
+  │                           │  peering     │                           │
+  │  spoke-aws1  10.20/23     │              │  spoke-gcp  10.31/23      │
+  │  └─ EC2 Ubuntu + nginx    │              │  └─ GCE Ubuntu + nginx    │
+  │  spoke-aws2  10.21/23     │              └───────────────────────────┘
+  │  └─ EC2 Ubuntu + nginx    │                           │
+  │                           │               GCP Partner Interconnect
+  │  [EKS]  10.22/23 (opt.)   │               50 Mbps VLAN attachment
+  │  └─ Gatus pods            │                           │
+  │  └─ Aviatrix spoke gw     │                           │
+  │                           │                           │
+  │  [AWS DX Gateway] (opt.)  │                           │
+  └───────────────────────────┘                           │
+              │                                           │
+      AWS Direct Connect                        GCP Partner Interconnect
+      50 Mbps hosted connection                 50 Mbps VLAN attachment
+              │                                           │
+              └─────────────────────┬─────────────────────┘
+                                    ▼
+                    ┌───────────────────────────────────┐
+                    │  Orange EVP PoP — Paris            │
+                    │  └─ Aviatrix Edge gateway          │
+                    └───────────────────────────────────┘
 
 DCF smart groups: spoke-aws1-vms · spoke-aws2-vms · spoke-gcp-vms
                   [eks-pods — optional, deploy_eks=true]
