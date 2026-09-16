@@ -68,7 +68,11 @@ This PoC demonstrates four capabilities in a single deployable lab:
                     ┌───────────────────────────────────┐
                     │  Orange EVP PoP — Paris            │
                     │  └─ Aviatrix Edge gateway          │
-                    └───────────────────────────────────┘
+                    └─────────────────┬─────────────────┘
+                                      │
+                              ┌───────▼────────────┐
+                              │  SD-WAN device     │
+                              └────────────────────┘
 
 DCF smart groups: spoke-aws1-vms · spoke-aws2-vms · spoke-gcp-vms
                   [eks-pods — optional, deploy_eks=true]
