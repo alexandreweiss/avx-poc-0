@@ -510,11 +510,11 @@ These are **cloud provider infrastructure costs only**. All figures are approxim
 | --------------------------------------------------- | ------------------- |
 | AWS compute (transit + 2× spokes + 2× VMs)          | ~$192               |
 | GCP compute (transit + spoke + VM)                  | ~$177               |
-| AWS Direct Connect — 50 Mbps hosted (Equinix PA3)   | ~$22                |
+| AWS Direct Connect — 50 Mbps hosted (Orange Paris)  | ~$22                |
 | GCP Partner Interconnect — 50 Mbps VLAN + router    | ~$47                |
 | **Total CSP**                                       | **~$438/month**     |
 
-DX: $0.03/hr × 730 hrs. DX Gateway and VGW no charge. Data transfer out $0.02/GB (usage-based).
+DX: $0.03/hr × 730 hrs (AWS port charge — same rate regardless of partner facility). DX Gateway and VGW no charge. Orange charges the local circuit fee separately. Data transfer out $0.02/GB (usage-based).
 
 GCP IC: $0.05417/hr × 730 hrs VLAN + $0.01/hr Cloud Router. Partner capacity (Orange) billed separately. Egress $0.02/GB (usage-based).
 
