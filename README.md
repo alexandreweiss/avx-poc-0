@@ -568,7 +568,7 @@ Partner Interconnect supports capacities starting at 50 Mbps (VLAN attachment). 
 
 ### Prerequisites
 
-1. **Connect to VPN** — import your `.ovpn` profile into an OpenVPN client and connect to `vpn_gateway_ip` (from `terraform output`). The script pings `AWS1_PRIV` as a pre-check and exits immediately if the VPN is not connected.
+1. **Network access to spoke private CIDRs** — skip this step if the test station already has routed access to the spoke subnets (jump host, bastion, or machine on the private network). Otherwise, connect via Aviatrix User VPN: import the `.ovpn` profile from the Controller into any OpenVPN-compatible client and connect to `vpn_gateway_ip` (from `terraform output`).
 
 2. **Set controller password** — the script needs it to call the controller API:
 
