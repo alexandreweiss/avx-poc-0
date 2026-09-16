@@ -564,7 +564,7 @@ Partner Interconnect supports capacities starting at 50 Mbps (VLAN attachment). 
 
 ## Tests
 
-`tests.sh` runs an automated connectivity and policy validation suite. All spoke VMs have private IPs only — **the script requires an active Aviatrix User VPN connection** before running.
+`tests.sh` runs an automated connectivity and policy validation suite. All spoke VMs have private IPs only — the script must run from a host that can reach the spoke private CIDRs. This means either **an active Aviatrix User VPN connection** or **a test station already part of the private network** (jump host, bastion, or any machine with routed access to the spoke subnets).
 
 ### Prerequisites
 
