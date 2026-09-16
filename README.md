@@ -78,6 +78,7 @@ DCF smart groups: spoke-aws1-vms · spoke-aws2-vms · spoke-gcp-vms
                   [eks-pods — optional, deploy_eks=true]
 DCF policy:       east-west PERMIT (all spokes ↔ all spokes) · default DENY
                   egress PERMIT TCP 80/443 from spoke VMs via gateway (single_ip_snat)
+EKS = Elastic Kubernetes Service (AWS)
 ```
 
 ### Two Terraform roots
