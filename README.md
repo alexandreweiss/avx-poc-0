@@ -278,7 +278,7 @@ Each page confirms the VM's cloud and region. SSH commands (private IP, key at `
 | `spoke_vm_instance_type` | `t3.micro`      | EC2 instance type for spoke VMs   |
 | `spoke_gcp_vm_type`      | `e2-micro`      | GCP instance type for spoke VM    |
 
-### Optional — EKS with Gatus dashboards
+### Optional — EKS (Elastic Kubernetes Service) with Gatus dashboards
 
 | Variable                 | Default        | Description                                                 |
 | ------------------------ | -------------- | ----------------------------------------------------------- |
