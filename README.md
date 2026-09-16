@@ -506,48 +506,16 @@ These are **cloud provider infrastructure costs only**. All figures are approxim
 
 ### Summary
 
-| Scenario                    | AWS (est.)   | GCP (est.)   | **Total/month** |
-| --------------------------- | ------------ | ------------ | --------------- |
-| PoC compute only (24/7)     | ~$192/month  | ~$177/month  | **~$369/month** |
+| Scenario                          | Compute AWS+GCP | DX 50 Mbps (AWS) | Partner IC 50 Mbps (GCP) | **Total CSP/month** |
+| --------------------------------- | --------------- | ---------------- | ------------------------ | ------------------- |
+| PoC only — internet overlay       | ~$369           | —                | —                        | **~$369**           |
+| + AWS Direct Connect stub         | ~$369           | ~$22             | —                        | **~$391**           |
+| + GCP Partner Interconnect stub   | ~$369           | —                | ~$47                     | **~$416**           |
+| Full private underlay (both)      | ~$369           | ~$22             | ~$47                     | **~$438**           |
 
-### Optional: Private Underlay (Orange circuits — 50 Mbps)
+DX detail: $0.03/hr × 730 hrs hosted connection (Equinix PA3, Paris) — AWS DX Gateway and VGW are no charge. Data transfer out $0.02/GB (usage-based).
 
-These costs apply when `deploy_dx_gateway = true` and/or `deploy_gcp_interconnect = true`. Billed by the CSP regardless of traffic volume — circuit pricing is always-on.
-
-#### AWS Direct Connect (50 Mbps, eu-west-1)
-
-AWS Direct Connect hosted connections via a partner are available at 50 Mbps.
-
-| Component                                       | Billing model                     | Monthly cost (est.) |
-| ----------------------------------------------- | --------------------------------- | ------------------- |
-| Hosted connection (50 Mbps, Equinix PA3, Paris) | $0.03/hr × 730 hrs                | **~$21.90/month**   |
-| AWS DX Gateway                                  | No charge                         | $0                  |
-| AWS Virtual Private Gateway (VGW)               | No charge                         | $0                  |
-| DX data transfer out (AWS → on-prem)            | $0.02/GB (eu-west-1, private VIF) | Usage-based         |
-| **AWS CSP fixed cost**                          |                                   | **~$21.90/month**   |
-
-> AWS bills the hosted connection port hours directly ($0.03/hr). Data transfer out (AWS → on-prem) billed separately at $0.02/GB.
-
-#### GCP Partner Interconnect (50 Mbps, europe-west3)
-
-Partner Interconnect supports capacities starting at 50 Mbps (VLAN attachment). The circuit is ordered through a partner (Orange).
-
-| Component                                | Billing model                                 | Monthly cost (est.) |
-| ---------------------------------------- | --------------------------------------------- | ------------------- |
-| VLAN attachment — 50 Mbps                | $0.05417/hr × 730 hrs                         | **~$39.54/month**   |
-| Partner capacity (50 Mbps)               | Partner-priced — Orange charges AL separately | Partner rate        |
-| GCP Cloud Router                         | $0.01/hr per VPN tunnel equivalent            | ~$7/month           |
-| Egress over interconnect (GCP → on-prem) | $0.02/GB                                      | Usage-based         |
-| **GCP CSP fixed cost**                   |                                               | **~$46.54/month**   |
-
-### Summary with private underlay
-
-| Scenario                          | AWS+GCP compute | DX (AWS CSP) | Partner Interconnect (GCP CSP) | **Total CSP/month** |
-| --------------------------------- | --------------- | ------------ | ------------------------------ | ------------------- |
-| PoC only (internet overlay)       | ~$369           | —            | —                              | **~$369**           |
-| + AWS DX stub activated           | ~$369           | ~$21.90      | —                              | **~$391**           |
-| + GCP Interconnect stub activated | ~$369           | —            | ~$46.54                        | **~$416**           |
-| Both underlay stubs active        | ~$369           | ~$21.90      | ~$46.54                        | **~$438**           |
+GCP detail: $0.05417/hr × 730 hrs VLAN attachment + $0.01/hr Cloud Router ≈ $47/month. Partner capacity (Orange) billed separately. Egress $0.02/GB (usage-based).
 
 > **Disclaimer:** All pricing figures in this section are provided for informational purposes only and were computed by AI. They may not reflect current list prices, regional variations, or negotiated rates. Always verify against official AWS, GCP, and partner pricing pages before making financial decisions.
 
