@@ -480,37 +480,35 @@ These are **cloud provider infrastructure costs only**. All figures are approxim
 
 ### AWS (`eu-west-1`)
 
-| Resource                       | Type        | $/hr          | 8 hr/day est.  |
-| ------------------------------ | ----------- | ------------- | -------------- |
-| Transit gateway EC2            | `c5.xlarge` | ~$0.192       | ~$1.54         |
-| Spoke gateway 1 EC2            | `t3.small`  | ~$0.023       | ~$0.18         |
-| Spoke gateway 2 EC2            | `t3.small`  | ~$0.023       | ~$0.18         |
-| Spoke VM 1 EC2                 | `t3.micro`  | ~$0.012       | ~$0.10         |
-| Spoke VM 2 EC2                 | `t3.micro`  | ~$0.012       | ~$0.10         |
-| EIPs (2× spoke gw + 1× transit)| —           | ~$0.011       | ~$0.09         |
-| **AWS subtotal**               |             | **~$0.27/hr** | **~$2.19/day** |
+| Resource                        | Type        | Billing model    | Monthly cost (est.) |
+| ------------------------------- | ----------- | ---------------- | ------------------- |
+| Transit gateway EC2             | `c5.xlarge` | $0.192/hr × 730  | **~$140/month**     |
+| Spoke gateway 1 EC2             | `t3.small`  | $0.023/hr × 730  | **~$17/month**      |
+| Spoke gateway 2 EC2             | `t3.small`  | $0.023/hr × 730  | **~$17/month**      |
+| Spoke VM 1 EC2                  | `t3.micro`  | $0.012/hr × 730  | **~$9/month**       |
+| Spoke VM 2 EC2                  | `t3.micro`  | $0.012/hr × 730  | **~$9/month**       |
+| EIPs (2× spoke gw + 1× transit) | —           | No charge in use | $0                  |
+| **AWS subtotal**                |             |                  | **~$192/month**     |
 
 > Spoke VMs have **private IPs only** (`associate_public_ip_address = false`). No EIP cost for workloads. Internet egress goes via the Aviatrix spoke gateway's EIP (`single_ip_snat = true`).
 
 ### GCP (`europe-west3`)
 
-| Resource                        | Type            | $/hr          | 8 hr/day est.  |
-| ------------------------------- | --------------- | ------------- | -------------- |
-| Transit gateway VM              | `n1-standard-2` | ~$0.112       | ~$0.90         |
-| Spoke gateway VM                | `n1-standard-2` | ~$0.112       | ~$0.90         |
-| Spoke VM                        | `e2-micro`      | ~$0.008       | ~$0.06         |
-| Static external IPs (2× gw EIP) | —               | ~$0.010       | ~$0.08         |
-| **GCP subtotal**                |                 | **~$0.24/hr** | **~$1.94/day** |
+| Resource                        | Type            | Billing model    | Monthly cost (est.) |
+| ------------------------------- | --------------- | ---------------- | ------------------- |
+| Transit gateway VM              | `n1-standard-2` | $0.112/hr × 730  | **~$82/month**      |
+| Spoke gateway VM                | `n1-standard-2` | $0.112/hr × 730  | **~$82/month**      |
+| Spoke VM                        | `e2-micro`      | $0.008/hr × 730  | **~$6/month**       |
+| Static external IPs (2× gw EIP) | —               | $0.005/IP/hr × 2 | **~$7/month**       |
+| **GCP subtotal**                |                 |                  | **~$177/month**     |
 
 > Spoke VM has **no external IP** (`access_config {}` removed). No ephemeral IP charge for the workload instance (~$0.004/hr saved vs. a public-IP design). Internet egress flows via the Aviatrix spoke gateway's static external IP.
 
 ### Summary
 
-| Scenario              | AWS     | GCP     | **Total**        |
-| --------------------- | ------- | ------- | ---------------- |
-| Active 8 hrs/day      | ~$2.19  | ~$1.94  | **~$4.13/day**   |
-| Active 24 hrs/day     | ~$6.58  | ~$5.81  | **~$12.39/day**  |
-| Full week (8 hrs/day) | ~$15.30 | ~$13.55 | **~$28.85/week** |
+| Scenario                    | AWS (est.)   | GCP (est.)   | **Total/month** |
+| --------------------------- | ------------ | ------------ | --------------- |
+| PoC compute only (24/7)     | ~$192/month  | ~$177/month  | **~$369/month** |
 
 ### Optional: Private Underlay (Orange circuits — 50 Mbps)
 
@@ -546,10 +544,10 @@ Partner Interconnect supports capacities starting at 50 Mbps (VLAN attachment). 
 
 | Scenario                          | AWS+GCP compute | DX (AWS CSP) | Partner Interconnect (GCP CSP) | **Total CSP/month** |
 | --------------------------------- | --------------- | ------------ | ------------------------------ | ------------------- |
-| PoC only (internet overlay)       | ~$372           | —            | —                              | **~$372**           |
-| + AWS DX stub activated           | ~$372           | ~$21.90      | —                              | **~$394**           |
-| + GCP Interconnect stub activated | ~$372           | —            | ~$46.54                        | **~$419**           |
-| Both underlay stubs active        | ~$372           | ~$21.90      | ~$46.54                        | **~$441**           |
+| PoC only (internet overlay)       | ~$369           | —            | —                              | **~$369**           |
+| + AWS DX stub activated           | ~$369           | ~$21.90      | —                              | **~$391**           |
+| + GCP Interconnect stub activated | ~$369           | —            | ~$46.54                        | **~$416**           |
+| Both underlay stubs active        | ~$369           | ~$21.90      | ~$46.54                        | **~$438**           |
 
 > **Disclaimer:** All pricing figures in this section are provided for informational purposes only and were computed by AI. They may not reflect current list prices, regional variations, or negotiated rates. Always verify against official AWS, GCP, and partner pricing pages before making financial decisions.
 
