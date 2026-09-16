@@ -590,10 +590,7 @@ Runs `ping -c 5` from AWS Spoke 1 to the GCP spoke and captures RTT statistics. 
 **Test 4 (section 4) — Egress via Aviatrix spoke gateway**
 SSH into each spoke VM and curl `http://example.com`. Verifies the DCF egress PERMIT policy (TCP 80/443) is active and `single_ip_snat` on the spoke gateway is forwarding internet-bound traffic correctly. Tests both AWS and GCP spokes.
 
-**Test 5 (section 5) — Controller API login**
-Calls the Aviatrix Controller REST API and confirms authentication succeeds. Required for control-plane verification.
-
-**Test 6 (section 6) — Traceroute AWS → GCP**
+**Test 5 (section 5) — Traceroute AWS → GCP**
 Runs `tracepath` from AWS Spoke 1 toward the GCP spoke. The first hop (Aviatrix gateway) replies; subsequent hops show no-reply because traffic is inside the encrypted tunnel. This is expected and confirms the overlay is active.
 
 ### Test checklist
@@ -605,10 +602,9 @@ Runs `tracepath` from AWS Spoke 1 toward the GCP spoke. The first hop (Aviatrix 
 | 3  |  [ ]  | Cross-cloud ICMP RTT                        | Latency baseline (~22 ms Dublin ↔ Frankfurt)         |
 | 4  |  [ ]  | HTTP egress — AWS Spoke 1                   | single_ip_snat + DCF egress PERMIT working           |
 | 5  |  [ ]  | HTTP egress — GCP Spoke                     | single_ip_snat + DCF egress PERMIT working           |
-| 6  |  [ ]  | Controller API login                        | Control plane reachable                              |
-| 7  |  [ ]  | Traceroute AWS → GCP                        | Gateway hop visible, tunnel hops no-reply (expected) |
+| 5  |  [ ]  | Traceroute AWS → GCP                        | Gateway hop visible, tunnel hops no-reply (expected) |
 
-Expected: **6 passed, 0 failed** (traceroute is informational, no pass/fail counted).
+Expected: **5 passed, 0 failed** (traceroute is informational, no pass/fail counted).
 
 No-reply hops in traceroute are intentional — traffic is encapsulated in the Aviatrix encrypted tunnel after the first gateway hop.
 

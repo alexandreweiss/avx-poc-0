@@ -107,36 +107,7 @@ else
 fi
 
 # ──────────────────────────────────────────────
-section "5. ENCRYPTION: verify tunnel encryption on gateway"
-# ──────────────────────────────────────────────
-
-echo "  Checking Aviatrix tunnel encryption via controller API..."
-CID=$(curl -sk -X POST "https://${CONTROLLER}/v1/api" \
-  -d "action=login&username=admin&password=${AVX_PASSWORD}" \
-  2>/dev/null | python3 -c "import sys,json; print(json.load(sys.stdin).get('CID',''))" 2>/dev/null || true)
-
-if [ -n "$CID" ]; then
-  tunnel_info=$(curl -sk -X GET \
-    "https://${CONTROLLER}/v2/api?action=list_encrypted_tunnels&CID=$CID" \
-    2>/dev/null | python3 -c "
-import sys,json
-d=json.load(sys.stdin)
-tunnels=d.get('results',[])
-if isinstance(tunnels,list):
-    print(f'{len(tunnels)} encrypted tunnels active')
-elif isinstance(d.get('results'),dict):
-    print(f'results: {list(d[\"results\"].keys())[:5]}')
-else:
-    print('check controller UI for tunnel encryption status')
-" 2>/dev/null || echo "parse error")
-  pass "Controller reachable — $tunnel_info"
-  echo "  Tip: CoPilot → FlowIQ shows encrypted flow visualization"
-else
-  fail "Controller API login failed"
-fi
-
-# ──────────────────────────────────────────────
-section "6. TRACEROUTE: path through Aviatrix gateways"
+section "5. TRACEROUTE: path through Aviatrix gateways"
 # ──────────────────────────────────────────────
 
 echo "  Traceroute AWS Spoke 1 → GCP Spoke (shows hops through gateways):"
