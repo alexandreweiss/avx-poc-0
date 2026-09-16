@@ -196,6 +196,54 @@ resource "aviatrix_distributed_firewalling_policy_list" "poc" {
     }
   }
 
+  # Spoke VMs egress to internet — required for bootstrap (apt-get) and nginx operation.
+  # Traffic flows through the spoke gateway (single_ip_snat=true); DCF inspects it here.
+  policies {
+    name     = "allow-spoke-vms-egress"
+    action   = "PERMIT"
+    priority = 70
+    protocol = "TCP"
+    logging  = true
+
+    src_smart_groups = [
+      aviatrix_smart_group.spoke_aws1.uuid,
+      aviatrix_smart_group.spoke_aws2.uuid,
+    ]
+    dst_smart_groups = [var.public_internet_smartgroup_uuid]
+
+    port_ranges {
+      lo = 80
+      hi = 80
+    }
+    port_ranges {
+      lo = 443
+      hi = 443
+    }
+  }
+
+  dynamic "policies" {
+    for_each = var.deploy_gcp ? [1] : []
+    content {
+      name     = "allow-spoke-gcp-egress"
+      action   = "PERMIT"
+      priority = 71
+      protocol = "TCP"
+      logging  = true
+
+      src_smart_groups = [aviatrix_smart_group.spoke_gcp[0].uuid]
+      dst_smart_groups = [var.public_internet_smartgroup_uuid]
+
+      port_ranges {
+        lo = 80
+        hi = 80
+      }
+      port_ranges {
+        lo = 443
+        hi = 443
+      }
+    }
+  }
+
   policies {
     name     = "allow-aws1-to-aws2"
     action   = "PERMIT"
@@ -254,7 +302,7 @@ resource "aviatrix_distributed_firewalling_policy_list" "poc" {
   }
 
   dynamic "policies" {
-    for_each = var.deploy_eks ? [1] : []
+    for_each = var.deploy_eks && var.allow_example_com_egress ? [1] : []
     content {
       name     = "allow-gatus-example-com"
       action   = "PERMIT"

@@ -1,36 +1,41 @@
+output "aviatrix_controller_ip" {
+  description = "Aviatrix Controller IP or hostname"
+  value       = var.aviatrix_controller_ip
+}
+
 output "ssh_private_key_path" {
   description = "Path to generated SSH private key for spoke VMs"
   value       = local_sensitive_file.spoke_vms_private_key.filename
 }
 
 output "ssh_connect_aws1" {
-  description = "SSH command for AWS Spoke 1 VM"
-  value       = "ssh -i spoke-vms.pem ubuntu@${aws_instance.spoke_aws1.public_ip}"
+  description = "SSH command for AWS Spoke 1 VM (requires VPN — no public IP)"
+  value       = "ssh -i spoke-vms.pem ubuntu@${aws_instance.spoke_aws1.private_ip}"
 }
 
 output "ssh_connect_aws2" {
-  description = "SSH command for AWS Spoke 2 VM"
-  value       = "ssh -i spoke-vms.pem ubuntu@${aws_instance.spoke_aws2.public_ip}"
+  description = "SSH command for AWS Spoke 2 VM (requires VPN — no public IP)"
+  value       = "ssh -i spoke-vms.pem ubuntu@${aws_instance.spoke_aws2.private_ip}"
 }
 
 output "ssh_connect_gcp" {
-  description = "SSH command for GCP Spoke VM"
-  value       = var.deploy_gcp ? "ssh -i spoke-vms.pem ubuntu@${google_compute_instance.spoke_gcp[0].network_interface[0].access_config[0].nat_ip}" : "not deployed"
+  description = "SSH command for GCP Spoke VM (requires VPN — no public IP)"
+  value       = var.deploy_gcp ? "ssh -i spoke-vms.pem ubuntu@${google_compute_instance.spoke_gcp[0].network_interface[0].network_ip}" : "not deployed"
 }
 
 output "nginx_url_aws1" {
-  description = "Nginx URL for AWS Spoke 1 VM"
-  value       = "http://${aws_instance.spoke_aws1.public_ip}"
+  description = "Nginx URL for AWS Spoke 1 VM (reachable via VPN)"
+  value       = "http://${aws_instance.spoke_aws1.private_ip}"
 }
 
 output "nginx_url_aws2" {
-  description = "Nginx URL for AWS Spoke 2 VM"
-  value       = "http://${aws_instance.spoke_aws2.public_ip}"
+  description = "Nginx URL for AWS Spoke 2 VM (reachable via VPN)"
+  value       = "http://${aws_instance.spoke_aws2.private_ip}"
 }
 
 output "nginx_url_gcp" {
-  description = "Nginx URL for GCP Spoke VM"
-  value       = var.deploy_gcp ? "http://${google_compute_instance.spoke_gcp[0].network_interface[0].access_config[0].nat_ip}" : "not deployed"
+  description = "Nginx URL for GCP Spoke VM (reachable via VPN)"
+  value       = var.deploy_gcp ? "http://${google_compute_instance.spoke_gcp[0].network_interface[0].network_ip}" : "not deployed"
 }
 
 output "transit_aws_gw_name" {

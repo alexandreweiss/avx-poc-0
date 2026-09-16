@@ -19,24 +19,8 @@ data "aws_ami" "ubuntu" {
 
 resource "aws_security_group" "spoke_vms" {
   name        = "poc-spoke-vms-sg"
-  description = "SSH + HTTP + RFC1918"
+  description = "RFC1918 ingress only - egress via Aviatrix spoke gateway (single_ip_snat)"
   vpc_id      = aviatrix_vpc.spoke_aws1.vpc_id
-
-  ingress {
-    description = "SSH"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    description = "HTTP"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
 
   ingress {
     description = "RFC1918"
@@ -56,24 +40,8 @@ resource "aws_security_group" "spoke_vms" {
 
 resource "aws_security_group" "spoke_aws2_vms" {
   name        = "poc-spoke-aws2-vms-sg"
-  description = "SSH + HTTP + RFC1918"
+  description = "RFC1918 ingress only - egress via Aviatrix spoke gateway (single_ip_snat)"
   vpc_id      = aviatrix_vpc.spoke_aws2.vpc_id
-
-  ingress {
-    description = "SSH"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    description = "HTTP"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
 
   ingress {
     description = "RFC1918"
@@ -97,9 +65,9 @@ resource "aws_instance" "spoke_aws1" {
   ami                         = data.aws_ami.ubuntu.id
   instance_type               = var.spoke_vm_instance_type
   key_name                    = aws_key_pair.spoke_vms.key_name
-  subnet_id                   = aviatrix_vpc.spoke_aws1.public_subnets[0].subnet_id
+  subnet_id                   = aviatrix_vpc.spoke_aws1.subnets[1].subnet_id
   vpc_security_group_ids      = [aws_security_group.spoke_vms.id]
-  associate_public_ip_address = true
+  associate_public_ip_address = false
 
   user_data = <<-EOF
     #!/bin/bash
@@ -129,9 +97,9 @@ resource "aws_instance" "spoke_aws2" {
   ami                         = data.aws_ami.ubuntu.id
   instance_type               = var.spoke_vm_instance_type
   key_name                    = aws_key_pair.spoke_vms.key_name
-  subnet_id                   = aviatrix_vpc.spoke_aws2.public_subnets[0].subnet_id
+  subnet_id                   = aviatrix_vpc.spoke_aws2.subnets[1].subnet_id
   vpc_security_group_ids      = [aws_security_group.spoke_aws2_vms.id]
-  associate_public_ip_address = true
+  associate_public_ip_address = false
 
   user_data = <<-EOF
     #!/bin/bash
@@ -179,7 +147,7 @@ resource "google_compute_firewall" "spoke_gcp_allow" {
     protocol = "icmp"
   }
 
-  source_ranges = ["0.0.0.0/0"]
+  source_ranges = ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]
 }
 
 resource "google_compute_instance" "spoke_gcp" {
@@ -197,7 +165,6 @@ resource "google_compute_instance" "spoke_gcp" {
 
   network_interface {
     subnetwork = "projects/${var.gcp_project_id}/regions/${var.gcp_region}/subnetworks/${aviatrix_vpc.spoke_gcp[0].subnets[0].name}"
-    access_config {}
   }
 
   metadata = {

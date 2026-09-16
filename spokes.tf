@@ -11,13 +11,14 @@ resource "aviatrix_vpc" "spoke_aws1" {
 }
 
 resource "aviatrix_spoke_gateway" "aws1" {
-  cloud_type   = 1
-  account_name = var.aws_account_name
-  gw_name      = "spoke-aws1-gw"
-  vpc_id       = aviatrix_vpc.spoke_aws1.vpc_id
-  vpc_reg      = var.aws_region
-  gw_size      = var.spoke_aws_gw_size
-  subnet       = aviatrix_vpc.spoke_aws1.public_subnets[0].cidr
+  cloud_type     = 1
+  account_name   = var.aws_account_name
+  gw_name        = "spoke-aws1-gw"
+  vpc_id         = aviatrix_vpc.spoke_aws1.vpc_id
+  vpc_reg        = var.aws_region
+  gw_size        = var.spoke_aws_gw_size
+  subnet         = aviatrix_vpc.spoke_aws1.public_subnets[0].cidr
+  single_ip_snat = true
 }
 
 resource "aviatrix_spoke_transit_attachment" "aws1" {
@@ -38,13 +39,14 @@ resource "aviatrix_vpc" "spoke_aws2" {
 }
 
 resource "aviatrix_spoke_gateway" "aws2" {
-  cloud_type   = 1
-  account_name = var.aws_account_name
-  gw_name      = "spoke-aws2-gw"
-  vpc_id       = aviatrix_vpc.spoke_aws2.vpc_id
-  vpc_reg      = var.aws_region
-  gw_size      = var.spoke_aws_gw_size
-  subnet       = aviatrix_vpc.spoke_aws2.public_subnets[0].cidr
+  cloud_type     = 1
+  account_name   = var.aws_account_name
+  gw_name        = "spoke-aws2-gw"
+  vpc_id         = aviatrix_vpc.spoke_aws2.vpc_id
+  vpc_reg        = var.aws_region
+  gw_size        = var.spoke_aws_gw_size
+  subnet         = aviatrix_vpc.spoke_aws2.public_subnets[0].cidr
+  single_ip_snat = true
 }
 
 resource "aviatrix_spoke_transit_attachment" "aws2" {
@@ -68,14 +70,15 @@ resource "aviatrix_vpc" "spoke_gcp" {
 }
 
 resource "aviatrix_spoke_gateway" "gcp" {
-  count        = var.deploy_gcp ? 1 : 0
-  cloud_type   = 4
-  account_name = var.gcp_account_name
-  gw_name      = "spoke-gcp-gw"
-  vpc_id       = aviatrix_vpc.spoke_gcp[0].vpc_id
-  vpc_reg      = "${var.gcp_region}-b"
-  gw_size      = var.spoke_gcp_gw_size
-  subnet       = aviatrix_vpc.spoke_gcp[0].subnets[0].cidr
+  count          = var.deploy_gcp ? 1 : 0
+  cloud_type     = 4
+  account_name   = var.gcp_account_name
+  gw_name        = "spoke-gcp-gw"
+  vpc_id         = aviatrix_vpc.spoke_gcp[0].vpc_id
+  vpc_reg        = "${var.gcp_region}-b"
+  gw_size        = var.spoke_gcp_gw_size
+  subnet         = aviatrix_vpc.spoke_gcp[0].subnets[0].cidr
+  single_ip_snat = true
 }
 
 resource "aviatrix_spoke_transit_attachment" "gcp" {

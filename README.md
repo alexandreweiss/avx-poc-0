@@ -408,25 +408,29 @@ These are **cloud provider infrastructure costs only**. All figures are approxim
 
 ### AWS (`eu-west-1`)
 
-| Resource             | Type        | $/hr          | 8 hr/day est.  |
-| -------------------- | ----------- | ------------- | -------------- |
-| Transit gateway EC2  | `c5.xlarge` | ~$0.192       | ~$1.54         |
-| Spoke gateway 1 EC2  | `t3.small`  | ~$0.023       | ~$0.18         |
-| Spoke gateway 2 EC2  | `t3.small`  | ~$0.023       | ~$0.18         |
-| Spoke VM 1 EC2       | `t3.micro`  | ~$0.012       | ~$0.10         |
-| Spoke VM 2 EC2       | `t3.micro`  | ~$0.012       | ~$0.10         |
-| EIPs (3 × idle rate) | —           | ~$0.011       | ~$0.09         |
-| **AWS subtotal**     |             | **~$0.27/hr** | **~$2.19/day** |
+| Resource                       | Type        | $/hr          | 8 hr/day est.  |
+| ------------------------------ | ----------- | ------------- | -------------- |
+| Transit gateway EC2            | `c5.xlarge` | ~$0.192       | ~$1.54         |
+| Spoke gateway 1 EC2            | `t3.small`  | ~$0.023       | ~$0.18         |
+| Spoke gateway 2 EC2            | `t3.small`  | ~$0.023       | ~$0.18         |
+| Spoke VM 1 EC2                 | `t3.micro`  | ~$0.012       | ~$0.10         |
+| Spoke VM 2 EC2                 | `t3.micro`  | ~$0.012       | ~$0.10         |
+| EIPs (2× spoke gw + 1× transit)| —           | ~$0.011       | ~$0.09         |
+| **AWS subtotal**               |             | **~$0.27/hr** | **~$2.19/day** |
+
+> Spoke VMs have **private IPs only** (`associate_public_ip_address = false`). No EIP cost for workloads. Internet egress goes via the Aviatrix spoke gateway's EIP (`single_ip_snat = true`).
 
 ### GCP (`europe-west3`)
 
-| Resource                | Type            | $/hr          | 8 hr/day est.  |
-| ----------------------- | --------------- | ------------- | -------------- |
-| Transit gateway VM      | `n1-standard-2` | ~$0.112       | ~$0.90         |
-| Spoke gateway VM        | `n1-standard-2` | ~$0.112       | ~$0.90         |
-| Spoke VM                | `e2-micro`      | ~$0.008       | ~$0.06         |
-| Static external IPs (2) | —               | ~$0.010       | ~$0.08         |
-| **GCP subtotal**        |                 | **~$0.24/hr** | **~$1.94/day** |
+| Resource                        | Type            | $/hr          | 8 hr/day est.  |
+| ------------------------------- | --------------- | ------------- | -------------- |
+| Transit gateway VM              | `n1-standard-2` | ~$0.112       | ~$0.90         |
+| Spoke gateway VM                | `n1-standard-2` | ~$0.112       | ~$0.90         |
+| Spoke VM                        | `e2-micro`      | ~$0.008       | ~$0.06         |
+| Static external IPs (2× gw EIP) | —               | ~$0.010       | ~$0.08         |
+| **GCP subtotal**                |                 | **~$0.24/hr** | **~$1.94/day** |
+
+> Spoke VM has **no external IP** (`access_config {}` removed). No ephemeral IP charge for the workload instance (~$0.004/hr saved vs. a public-IP design). Internet egress flows via the Aviatrix spoke gateway's static external IP.
 
 ### Summary
 
@@ -487,35 +491,100 @@ Partner Interconnect supports capacities starting at 50 Mbps (VLAN attachment). 
 
 ## Tests
 
-`tests.sh` runs an automated connectivity and policy validation suite against the deployed infrastructure. Run from the repo root after `terraform apply`.
+`tests.sh` runs an automated connectivity and policy validation suite. All spoke VMs have private IPs only — **the script requires an active Aviatrix User VPN connection** before running.
 
-**Prerequisite:** export the Aviatrix Controller admin password before running:
+### Prerequisites
+
+1. **Connect to VPN** — import your `.ovpn` profile into an OpenVPN client and connect to `vpn_gateway_ip` (from `terraform output`). The script pings `AWS1_PRIV` as a pre-check and exits immediately if the VPN is not connected.
+
+2. **Set controller password** — the script needs it to call the controller API:
 
 ```bash
 export AVX_PASSWORD=<controller-admin-password>
+```
+
+> Never hardcode the password in the script or commit it to version control.
+
+### Running
+
+```bash
+# Default — IPs and controller address are read automatically from terraform output
+AVX_PASSWORD=<password> ./tests.sh
+```
+
+The script resolves all spoke IPs and the controller address from `terraform output` at runtime, so it stays in sync with the deployed state without manual edits.
+
+**Override any value via environment variable** (useful when running outside the repo root or against a different deployment):
+
+```bash
+AWS1_PRIV=10.20.0.43 \
+AWS2_PRIV=10.21.0.58 \
+GCP_PRIV=10.31.0.3 \
+CONTROLLER=98.66.161.244 \
+KEY=spoke-vms.pem \
+AVX_PASSWORD=<password> \
 ./tests.sh
 ```
 
-> `AVX_PASSWORD` is required. The script will exit immediately with a usage error if it is not set. Never hardcode the password in the script or commit it to version control.
+| Variable | Default source | Description |
+|---|---|---|
+| `AVX_PASSWORD` | — required — | Controller admin password |
+| `AWS1_PRIV` | `terraform output nginx_url_aws1` | AWS Spoke 1 private IP |
+| `AWS2_PRIV` | `terraform output nginx_url_aws2` | AWS Spoke 2 private IP |
+| `GCP_PRIV` | `terraform output nginx_url_gcp` | GCP Spoke private IP |
+| `CONTROLLER` | `terraform output aviatrix_controller_ip` | Controller IP or hostname |
+| `KEY` | `spoke-vms.pem` | SSH private key path |
+
+### What each test does
+
+**Test 0 — VPN pre-check**
+Pings the AWS Spoke 1 private IP before running anything. Exits with instructions if unreachable — prevents misleading failures from a disconnected VPN.
+
+**Test 1–3 — Nginx reachability (VPN → spoke private IPs)**
+Curls each spoke VM over its private IP and checks the response contains the expected location string (e.g. "AWS Dublin"). Confirms the VM is up, nginx is running, and the VPN split-tunnel covers the spoke CIDRs.
+
+**Test 2 (section 2) — East-west same cloud (AWS1 ↔ AWS2)**
+SSH into AWS Spoke 1 and curl AWS Spoke 2's private IP, then reverse. Traffic flows through the Aviatrix overlay (spoke → transit → spoke) entirely within AWS. Confirms intra-cloud transit routing and the DCF PERMIT policy.
+
+**Test 3 (section 3) — Cross-cloud east-west (AWS → GCP)**
+SSH into each AWS spoke and curl the GCP spoke's private IP. Traffic crosses the encrypted Aviatrix transit peering between Dublin and Frankfurt. Confirms cross-cloud routing and DCF policy in the AWS→GCP direction.
+
+**Test 4 (section 4) — Cross-cloud east-west (GCP → AWS)**
+Reverse direction of the above. SSH into the GCP spoke and curl each AWS spoke. Confirms the peering and DCF are bidirectional.
+
+**Test 5 (section 5) — Cross-cloud latency (ICMP RTT)**
+Runs `ping -c 5` from AWS Spoke 1 to the GCP spoke and captures RTT statistics. Provides a latency baseline (~22 ms Dublin → Frankfurt over internet overlay).
+
+**Test 6 (section 6) — Egress via Aviatrix spoke gateway**
+SSH into each spoke VM and curl `http://example.com`. Verifies that the DCF egress PERMIT policy (TCP 80/443) is active and that `single_ip_snat` on the spoke gateway is forwarding internet-bound traffic correctly. Tests both AWS and GCP spokes.
+
+**Test 7 (section 7) — Controller API login**
+Calls the Aviatrix Controller REST API and confirms authentication succeeds. Required for control-plane verification.
+
+**Test 8 (section 8) — Traceroute AWS → GCP**
+Runs `tracepath` from AWS Spoke 1 toward the GCP spoke. The first hop (Aviatrix gateway) replies; subsequent hops show no-reply because traffic is inside the encrypted tunnel. This is expected and confirms the overlay is active.
 
 ### Test checklist
 
-| #   | Pass  | Test                                   | What it proves                                       | Comments |
-| --- | :---: | -------------------------------------- | ---------------------------------------------------- | -------- |
-| 1   |  [ ]  | Public nginx — AWS Spoke 1             | Internet reachability, VM up                         |          |
-| 2   |  [ ]  | Public nginx — AWS Spoke 2             | Internet reachability, VM up                         |          |
-| 3   |  [ ]  | Public nginx — GCP Spoke               | Internet reachability, VM up                         |          |
-| 4   |  [ ]  | AWS Spoke 1 → AWS Spoke 2 (private IP) | East-west same cloud                                 |          |
-| 5   |  [ ]  | AWS Spoke 2 → AWS Spoke 1 (private IP) | Bidirectional same cloud                             |          |
-| 6   |  [ ]  | AWS → GCP (private IP)                 | Cross-cloud via transit peering                      |          |
-| 7   |  [ ]  | GCP → AWS (private IP)                 | Bidirectional cross-cloud                            |          |
-| 8   |  [ ]  | Cross-cloud ICMP RTT                   | Latency baseline (~22 ms Dublin ↔ Frankfurt)         |          |
-| 9   |  [ ]  | HTTP egress from spoke                 | DCF AllWeb egress PERMIT active                      |          |
-| 10  |  [ ]  | Controller API login                   | Aviatrix control plane reachable                     |          |
-| 11  |  [ ]  | Traceroute AWS → GCP                   | Gateway hop visible, tunnel hops no-reply (expected) |          |
-| 12  |  [ ]  | DCF default DENY                       | Direct spoke-to-spoke without policy blocked         |          |
+| #  | Pass  | Test                                        | What it proves                                       |
+|----|:-----:|---------------------------------------------|------------------------------------------------------|
+| 0  |  [ ]  | VPN pre-check                               | VPN connected, spoke CIDRs reachable                 |
+| 1  |  [ ]  | Nginx — AWS Spoke 1 (private IP)            | VM up, nginx running, VPN split-tunnel working       |
+| 2  |  [ ]  | Nginx — AWS Spoke 2 (private IP)            | VM up, nginx running                                 |
+| 3  |  [ ]  | Nginx — GCP Spoke (private IP)              | VM up, nginx running                                 |
+| 4  |  [ ]  | AWS Spoke 1 → AWS Spoke 2 (private IP)      | East-west same cloud, DCF PERMIT active              |
+| 5  |  [ ]  | AWS Spoke 2 → AWS Spoke 1 (private IP)      | Bidirectional same cloud                             |
+| 6  |  [ ]  | AWS Spoke 1 → GCP (private IP)              | Cross-cloud transit peering                          |
+| 7  |  [ ]  | AWS Spoke 2 → GCP (private IP)              | Cross-cloud transit peering both spokes              |
+| 8  |  [ ]  | GCP → AWS Spoke 1 (private IP)              | Bidirectional cross-cloud                            |
+| 9  |  [ ]  | GCP → AWS Spoke 2 (private IP)              | Bidirectional cross-cloud both spokes                |
+| 10 |  [ ]  | Cross-cloud ICMP RTT                        | Latency baseline (~22 ms Dublin ↔ Frankfurt)         |
+| 11 |  [ ]  | HTTP egress — AWS Spoke 1                   | single_ip_snat + DCF egress PERMIT working           |
+| 12 |  [ ]  | HTTP egress — GCP Spoke                     | single_ip_snat + DCF egress PERMIT working           |
+| 13 |  [ ]  | Controller API login                        | Control plane reachable                              |
+| 14 |  [ ]  | Traceroute AWS → GCP                        | Gateway hop visible, tunnel hops no-reply (expected) |
 
-Expected: **12 passed, 0 failed**.
+Expected: **14 passed, 0 failed** (test 0 exits before counting if VPN is down; traceroute is informational).
 
 No-reply hops in traceroute are intentional — traffic is encapsulated in the Aviatrix encrypted tunnel after the first gateway hop.
 

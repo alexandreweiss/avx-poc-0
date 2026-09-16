@@ -222,6 +222,12 @@ variable "eks_node_instance_type" {
   default     = "t3.medium"
 }
 
+variable "allow_example_com_egress" {
+  description = "Allow gatus-example pods to reach www.example.com via DCF (set false to demonstrate default-deny blocking)"
+  type        = bool
+  default     = true
+}
+
 variable "deploy_gcp_interconnect" {
   description = "Deploy GCP VLAN attachments for Partner Interconnect (set true when partner circuit is available)"
   type        = bool
