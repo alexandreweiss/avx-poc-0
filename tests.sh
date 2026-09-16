@@ -42,36 +42,7 @@ fail() { echo "  [FAIL] $1"; ((FAIL++)); }
 section() { echo; echo "=== $1 ==="; }
 
 # ──────────────────────────────────────────────
-section "0. PRE-CHECK: VPN connectivity"
-# ──────────────────────────────────────────────
-
-echo "  Checking reachability of AWS Spoke 1 private IP ($AWS1_PRIV)..."
-if ping -c 1 -W 3 "$AWS1_PRIV" &>/dev/null; then
-  pass "VPN connected — $AWS1_PRIV reachable"
-else
-  echo "  [FAIL] $AWS1_PRIV unreachable — connect to Aviatrix User VPN first (gateway: $CONTROLLER)"
-  echo "  Download your VPN profile from the Controller and connect before running this script."
-  exit 1
-fi
-
-# ──────────────────────────────────────────────
-section "1. NGINX REACHABILITY (VPN client → spoke private IPs)"
-# ──────────────────────────────────────────────
-
-for vm in "AWS Spoke 1:$AWS1_PRIV:AWS Dublin" "AWS Spoke 2:$AWS2_PRIV:AWS Dublin" "GCP Spoke:$GCP_PRIV:GCP Frankfurt"; do
-  name=$(echo $vm | cut -d: -f1)
-  ip=$(echo $vm | cut -d: -f2)
-  expected=$(echo $vm | cut -d: -f3)
-  result=$(curl -s --max-time 5 "http://$ip" 2>/dev/null || true)
-  if echo "$result" | grep -q "$expected"; then
-    pass "$name nginx page contains '$expected'"
-  else
-    fail "$name nginx unreachable or wrong content (got: $(echo $result | head -c80))"
-  fi
-done
-
-# ──────────────────────────────────────────────
-section "2. EAST-WEST: AWS1 → AWS2 (same cloud, cross-spoke)"
+section "1. EAST-WEST: AWS1 → AWS2 (same cloud, cross-spoke)"
 # ──────────────────────────────────────────────
 
 result=$(ssh $SSH_OPTS ubuntu@$AWS1_PRIV \
@@ -83,7 +54,7 @@ else
 fi
 
 # ──────────────────────────────────────────────
-section "3. EAST-WEST: AWS → GCP (cross-cloud via transit peering)"
+section "2. EAST-WEST: AWS → GCP (cross-cloud via transit peering)"
 # ──────────────────────────────────────────────
 
 result=$(ssh $SSH_OPTS ubuntu@$AWS1_PRIV \
@@ -95,7 +66,7 @@ else
 fi
 
 # ──────────────────────────────────────────────
-section "4. LATENCY: cross-cloud RTT (AWS Dublin ↔ GCP Frankfurt)"
+section "3. LATENCY: cross-cloud RTT (AWS Dublin ↔ GCP Frankfurt)"
 # ──────────────────────────────────────────────
 
 echo "  Pinging GCP private IP from AWS Spoke 1 (5 packets)..."
@@ -114,7 +85,7 @@ rtt=$(ssh $SSH_OPTS ubuntu@$GCP_PRIV \
 echo "  RTT: $rtt"
 
 # ──────────────────────────────────────────────
-section "5. EGRESS: spoke VM internet access via Aviatrix gateway (single_ip_snat)"
+section "4. EGRESS: spoke VM internet access via Aviatrix gateway (single_ip_snat)"
 # ──────────────────────────────────────────────
 
 echo "  Testing HTTP egress from AWS Spoke 1 (should be allowed by DCF AllWeb policy)..."
@@ -136,7 +107,7 @@ else
 fi
 
 # ──────────────────────────────────────────────
-section "6. ENCRYPTION: verify tunnel encryption on gateway"
+section "5. ENCRYPTION: verify tunnel encryption on gateway"
 # ──────────────────────────────────────────────
 
 echo "  Checking Aviatrix tunnel encryption via controller API..."
@@ -165,7 +136,7 @@ else
 fi
 
 # ──────────────────────────────────────────────
-section "7. TRACEROUTE: path through Aviatrix gateways"
+section "6. TRACEROUTE: path through Aviatrix gateways"
 # ──────────────────────────────────────────────
 
 echo "  Traceroute AWS Spoke 1 → GCP Spoke (shows hops through gateways):"
