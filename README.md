@@ -47,7 +47,7 @@ This PoC demonstrates four capabilities in a single deployable lab:
   ┌───────────────────────────┐              ┌───────────────────────────┐
   │  transit-aws-dublin       │◄─ internet ─►│  transit-gcp-frankfurt    │
   │  10.10.0.0/23  c5.xlarge  │  encrypted   │  10.30.0.0/23  n1-std-2  │
-  │                           │  peering     │                           │
+  │                           │  (backup)    │                           │
   │  spoke-aws1  10.20/23     │              │  spoke-gcp  10.31/23      │
   │  └─ EC2 Ubuntu + nginx    │              │  └─ GCE Ubuntu + nginx    │
   │  spoke-aws2  10.21/23     │              └───────────────────────────┘
