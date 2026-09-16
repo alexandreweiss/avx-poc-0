@@ -619,6 +619,105 @@ No-reply hops in traceroute are intentional — traffic is encapsulated in the A
 
 ---
 
+## Aviatrix MCP Server Demo
+
+The [Aviatrix MCP server](https://github.com/aviatrix/aviatrix-mcp) exposes Aviatrix controller capabilities as tools that any MCP-compatible AI client (Claude Desktop, Claude Code, Cursor, etc.) can call. This PoC is a good vehicle to demonstrate natural-language network operations against a live multicloud environment.
+
+### Setup
+
+1. Install and configure the Aviatrix MCP server, pointing it at the controller:
+
+```json
+{
+  "mcpServers": {
+    "aviatrix": {
+      "command": "npx",
+      "args": ["-y", "@aviatrix/mcp-server"],
+      "env": {
+        "AVIATRIX_CONTROLLER_IP": "<controller-ip>",
+        "AVIATRIX_USERNAME": "admin",
+        "AVIATRIX_PASSWORD": "<password>"
+      }
+    }
+  }
+}
+```
+
+2. Add the config to your MCP client (Claude Desktop: `~/Library/Application Support/Claude/claude_desktop_config.json`; Claude Code: `.claude/mcp.json` in the repo root).
+
+3. Verify the server connects — the client should list Aviatrix tools in its tool palette.
+
+### Demo prompts
+
+The prompts below demonstrate the four PoC pillars (automation, visibility, security, encryption) through conversational queries rather than CLI commands.
+
+#### Observability — latency and topology
+
+```
+Using the Aviatrix MCP, can you calculate the latency between the aws1 spoke gateway and the gcp spoke gateway?
+```
+
+```
+Show me the full network topology for this multicloud environment. Which gateways are peered and what are their CIDRs?
+```
+
+```
+What is the current throughput and packet loss on the transit peering between AWS Dublin and GCP Frankfurt?
+```
+
+#### Security — DCF policy inspection
+
+```
+What are the current DCF rules that allow traffic between the aws1 spoke and the gcp spoke?
+```
+
+```
+List all DENY rules currently active in the Distributed Cloud Firewall and explain what traffic they block.
+```
+
+```
+Which smart groups are defined, and which DCF policies reference them?
+```
+
+```
+Is there any DCF rule that would block ICMP between spoke-aws1-vms and spoke-gcp-vms?
+```
+
+#### Encryption — tunnel status
+
+```
+Are all transit tunnels between AWS Dublin and GCP Frankfurt currently encrypted? What encryption algorithm is in use?
+```
+
+```
+List all active encrypted tunnels on the AWS transit gateway and their current state.
+```
+
+#### Change via natural language (optional — requires write-enabled MCP)
+
+```
+Add a new DCF DENY rule at priority 98 blocking TCP port 8080 from spoke-aws1-vms to spoke-gcp-vms, with logging enabled.
+```
+
+```
+Update the allow-spoke-vms-egress DCF policy to also permit UDP port 53 for DNS resolution.
+```
+
+> Write operations require the MCP server to be configured with write permissions. For a read-only demo, set the server to read-only mode to prevent accidental changes.
+
+### What this demonstrates
+
+| Query theme | Aviatrix capability shown |
+|---|---|
+| Latency / RTT calculation | CoPilot FlowIQ, gateway-to-gateway telemetry |
+| Topology discovery | Controller API — VPCs, gateways, peerings |
+| DCF policy listing | Distributed Cloud Firewall policy engine |
+| Smart group inspection | Tag-based workload identity, no IP management |
+| Tunnel encryption status | HPE (High-Performance Encryption) visibility |
+| Natural-language changes | Infra-as-conversation — policy changes without CLI |
+
+---
+
 ## Known Gotchas
 
 - `aviatrix_distributed_firewalling_config` is controller-global — only one instance per controller. If DCF is already enabled on this controller by another workspace, import the resource before applying: `terraform import aviatrix_distributed_firewalling_config.this distributed_firewalling_config`
