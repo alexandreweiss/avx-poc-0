@@ -183,15 +183,25 @@ terraform apply
 
 Deployment takes approximately 20–30 minutes. Gateway provisioning is the bottleneck.
 
-### 3. Verify
+### 3. Connect to VPN
 
-Run the full automated test suite:
+All spoke VMs have private IPs only. To reach them you need an active Aviatrix User VPN connection.
+
+```bash
+terraform output vpn_gateway_ip   # server address for your OpenVPN client
+```
+
+Import the `.ovpn` profile downloaded from the Controller into any OpenVPN-compatible client and connect before running the test suite or accessing nginx pages.
+
+### 4. Verify
+
+Run the full automated test suite (VPN must be connected first):
 
 ```bash
 AVX_PASSWORD=<controller-admin-password> ./tests.sh
 ```
 
-Or check individual nginx pages:
+Or check individual nginx pages (reachable via VPN):
 
 ```bash
 terraform output nginx_url_aws1
@@ -199,7 +209,7 @@ terraform output nginx_url_aws2
 terraform output nginx_url_gcp
 ```
 
-Each page confirms the VM's cloud and region, and SSH commands are ready in the outputs.
+Each page confirms the VM's cloud and region. SSH commands (private IP, key at `spoke-vms.pem`) are in the outputs.
 
 ---
 
@@ -253,7 +263,8 @@ When `deploy_eks = true`, Terraform deploys:
 - Two Gatus deployments: `gatus-aviatrix` (monitors `https://aviatrix.ai`) and `gatus-example` (monitors `https://www.example.com`), each in its own namespace
 - Two k8s-type Aviatrix smart groups matched by cluster + namespace
 - Two webgroups for domain-based SNI filtering (`aviatrix.ai`, `example.com`)
-- Two PERMIT HTTPS DCF policies (priority 210–211) scoped to each Gatus namespace → its webgroup
+- DCF policy 210: **DENY** `gatus-aviatrix` → `aviatrix.ai` webgroup (demonstrates domain-level blocking)
+- DCF policy 211: **PERMIT** `gatus-example` → `example.com` webgroup (conditional on `allow_example_com_egress`; set `false` to demonstrate default-deny)
 
 **AWS quota requirements for EKS:** 1 additional VPC (total 5+) and 1 additional EIP (NAT gateway) beyond the base deployment. See the quota commands in the AWS quota table above.
 
@@ -273,19 +284,23 @@ When `deploy_eks = true`, Terraform deploys:
 
 ## Outputs
 
-| Output                         | Description                                                          |
-| ------------------------------ | -------------------------------------------------------------------- |
-| `ssh_connect_aws1`             | Ready SSH command for AWS spoke 1 VM                                 |
-| `ssh_connect_aws2`             | Ready SSH command for AWS spoke 2 VM                                 |
-| `ssh_connect_gcp`              | Ready SSH command for GCP spoke VM                                   |
-| `nginx_url_aws1`               | HTTP URL for AWS spoke 1 nginx page                                  |
-| `nginx_url_aws2`               | HTTP URL for AWS spoke 2 nginx page                                  |
-| `nginx_url_gcp`                | HTTP URL for GCP spoke nginx page                                    |
-| `ssh_private_key_path`         | Path to generated `spoke-vms.pem` (chmod 600, gitignored)            |
-| `dx_gateway_id`                | AWS Direct Connect Gateway ID (if deployed)                          |
-| `gcp_interconnect_pairing_key` | GCP Partner Interconnect pairing key to give to Orange (if deployed) |
-| `eks_cluster_endpoint`         | EKS cluster API endpoint (if `deploy_eks = true`)                    |
-| `eks_kubeconfig_cmd`           | `aws eks update-kubeconfig` command to configure kubectl             |
+| Output                         | Description                                                                      |
+| ------------------------------ | -------------------------------------------------------------------------------- |
+| `ssh_connect_aws1`             | Ready SSH command for AWS spoke 1 VM (requires VPN — private IP)                |
+| `ssh_connect_aws2`             | Ready SSH command for AWS spoke 2 VM (requires VPN — private IP)                |
+| `ssh_connect_gcp`              | Ready SSH command for GCP spoke VM (requires VPN — private IP)                  |
+| `nginx_url_aws1`               | HTTP URL for AWS spoke 1 nginx page (requires VPN)                              |
+| `nginx_url_aws2`               | HTTP URL for AWS spoke 2 nginx page (requires VPN)                              |
+| `nginx_url_gcp`                | HTTP URL for GCP spoke nginx page (requires VPN)                                |
+| `ssh_private_key_path`         | Path to generated `spoke-vms.pem` (chmod 600, gitignored)                       |
+| `aviatrix_controller_ip`       | Controller IP — used by `tests.sh` to call the API                              |
+| `vpn_gateway_ip`               | VPN gateway public IP — use as server address in OpenVPN client (if `deploy_vpn = true`) |
+| `dx_gateway_id`                | AWS Direct Connect Gateway ID (if deployed)                                     |
+| `gcp_interconnect_pairing_key` | GCP Partner Interconnect pairing key to give to Orange (if deployed)            |
+| `eks_cluster_endpoint`         | EKS cluster API endpoint (if `deploy_eks = true`)                               |
+| `eks_kubeconfig_cmd`           | `aws eks update-kubeconfig` command to configure kubectl                         |
+| `gatus_aviatrix_url`           | Gatus aviatrix.ai dashboard pod URL — accessible via VPN + kubectl (if EKS)     |
+| `gatus_example_url`            | Gatus example.com dashboard pod URL — accessible via VPN + kubectl (if EKS)     |
 
 ---
 
@@ -293,15 +308,22 @@ When `deploy_eks = true`, Terraform deploys:
 
 Distributed Cloud Firewall is enabled at the controller level and enforced at each spoke gateway. Smart groups use VM tags (AWS) and CIDR (GCP) to identify workloads — no manual IP management.
 
-| Priority | Rule                                                                       | Action        |
-| -------- | -------------------------------------------------------------------------- | ------------- |
-| 100–105  | spoke-aws1 ↔ spoke-aws2 ↔ spoke-gcp (all pairs)                            | PERMIT ANY    |
-| 200–201  | Anywhere → Public Internet via AllWeb (TCP 80, 443)                        | PERMIT        |
-| 210      | gatus-aviatrix pods → Public Internet via `aviatrix.ai` webgroup (TCP 443) | PERMIT        |
-| 211      | gatus-example pods → Public Internet via `example.com` webgroup (TCP 443)  | PERMIT        |
-| 65000    | Anywhere → Anywhere                                                        | DENY (logged) |
+| Priority | Rule                                                                          | When         | Action        |
+| -------- | ----------------------------------------------------------------------------- | ------------ | ------------- |
+| 50       | VPN clients → Anywhere (ANY)                                                  | deploy_vpn   | PERMIT        |
+| 60       | EKS nodes → Public Internet (ANY)                                             | deploy_eks   | PERMIT        |
+| 70       | spoke-aws1 + spoke-aws2 VMs → Public Internet (TCP 80, 443)                  | always       | PERMIT        |
+| 71       | spoke-gcp VMs → Public Internet (TCP 80, 443)                                | deploy_gcp   | PERMIT        |
+| 100      | spoke-aws1 → spoke-aws2                                                       | always       | PERMIT ANY    |
+| 101      | spoke-aws2 → spoke-aws1                                                       | always       | PERMIT ANY    |
+| 102–105  | spoke-aws1/aws2 ↔ spoke-gcp (all pairs)                                       | deploy_gcp   | PERMIT ANY    |
+| 210      | gatus-aviatrix pods → Public Internet via `aviatrix.ai` webgroup (TCP 443)   | deploy_eks   | DENY (logged) |
+| 211      | gatus-example pods → Public Internet via `example.com` webgroup (TCP 443)    | deploy_eks + allow_example_com_egress | PERMIT |
+| 65000    | Anywhere → Anywhere                                                           | always       | DENY (logged) |
 
-All rules log matched flows. Flow logs are visible in CoPilot > Security > Distributed Cloud Firewall > Monitor.
+All rules log matched flows. Flow logs visible in CoPilot > Security > Distributed Cloud Firewall > Monitor.
+
+> Priority 210 is a **DENY** for `gatus-aviatrix` pods — intentional demo of domain-level blocking. Priority 211 is a **PERMIT** for `gatus-example` pods, toggled by `allow_example_com_egress = false` to demonstrate default-deny blocking.
 
 ---
 
@@ -600,6 +622,7 @@ No-reply hops in traceroute are intentional — traffic is encapsulated in the A
 ## Known Gotchas
 
 - `aviatrix_distributed_firewalling_config` is controller-global — only one instance per controller. If DCF is already enabled on this controller by another workspace, import the resource before applying: `terraform import aviatrix_distributed_firewalling_config.this distributed_firewalling_config`
-- GCP VPC subnets: `subnets[0]` is the gateway subnet; workload VMs use `subnets[1]`
+- **AWS spoke VPCs**: `subnets[0]` is the Aviatrix gateway subnet; spoke VMs use `subnets[1]` (private workload subnet)
+- **GCP spoke VPCs**: only `subnets[0]` exists — both the Aviatrix gateway and the workload VM use it. There is no `subnets[1]`.
 - GCP `google_compute_interconnect_attachment` with `type = "PARTNER"` and an empty `pairing_key` is valid on first create — the attachment enters `PENDING_CUSTOMER` state awaiting the partner
 - After `controlplane/` apply, wait ~5 minutes for Controller bootstrap before running the root module
