@@ -55,6 +55,18 @@ output "dx_gateway_id" {
   value       = var.deploy_dx_gateway ? aws_dx_gateway.this[0].id : "not deployed"
 }
 
+output "dx_order_info_for_orange" {
+  description = "Info to provide to Orange to order the hosted DX connection"
+  value = var.deploy_dx_gateway ? {
+    aws_account_id    = data.aws_caller_identity.current.account_id
+    requested_location = var.dx_connection_location
+    requested_bandwidth = var.dx_connection_bandwidth
+    aws_region        = "eu-west-3"
+    dx_gateway_id     = aws_dx_gateway.this[0].id
+    next_step         = "Orange manages VIF lifecycle using dedicated IAM role. Active VIFs: dxvif-fg7gdkba, dxvif-fgrpf172."
+  } : null
+}
+
 output "vpn_gateway_ip" {
   description = "VPN gateway public IP — use as server in OpenVPN client profile (if deploy_vpn=true)"
   value       = var.deploy_vpn ? aviatrix_gateway.vpn[0].eip : "not deployed"
@@ -80,7 +92,12 @@ output "eks_kubeconfig_cmd" {
   value       = var.deploy_eks ? "aws eks update-kubeconfig --region ${var.aws_region} --name ${aws_eks_cluster.this[0].name}" : "not deployed"
 }
 
-output "gcp_interconnect_pairing_key" {
-  description = "GCP Partner Interconnect pairing key to provide to partner (if deployed)"
-  value       = var.deploy_gcp_interconnect ? google_compute_interconnect_attachment.partner[0].pairing_key : "not deployed"
+output "gcp_interconnect_pairing_key_1" {
+  description = "GCP Partner Interconnect pairing key 1 (AVAILABILITY_DOMAIN_1) - give to partner"
+  value       = var.deploy_gcp_interconnect ? google_compute_interconnect_attachment.partner_1[0].pairing_key : "not deployed"
+}
+
+output "gcp_interconnect_pairing_key_2" {
+  description = "GCP Partner Interconnect pairing key 2 (AVAILABILITY_DOMAIN_2) - give to partner"
+  value       = var.deploy_gcp_interconnect ? google_compute_interconnect_attachment.partner_2[0].pairing_key : "not deployed"
 }

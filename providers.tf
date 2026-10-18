@@ -8,6 +8,11 @@ provider "aws" {
   region = var.aws_region
 }
 
+provider "aws" {
+  alias  = "paris"
+  region = "eu-west-3"
+}
+
 provider "google" {
   project = var.gcp_project_id
   region  = var.gcp_region

@@ -162,6 +162,19 @@ variable "dx_gateway_name" {
   default     = "poc-dx-gateway"
 }
 
+variable "dx_connection_location" {
+  description = "AWS DX location code for Paris to request from Orange. Options: EQPA3 (Equinix PA3), ITXP7 (Digital Realty PAR7), THV52 (Telehouse Voltaire)"
+  type        = string
+  default     = "EQPA3"
+}
+
+variable "dx_connection_bandwidth" {
+  description = "DX hosted connection bandwidth to request from Orange (50Mbps, 100Mbps, 200Mbps, 300Mbps, 400Mbps, 500Mbps, 1Gbps, 2Gbps, 5Gbps, 10Gbps)"
+  type        = string
+  default     = "50Mbps"
+}
+
+
 # --- Optional: GCP Partner Interconnect Gateway ---
 
 # --- Optional: Aviatrix User VPN ---
@@ -234,10 +247,16 @@ variable "deploy_gcp_interconnect" {
   default     = false
 }
 
+variable "gcp_interconnect_region" {
+  description = "GCP region for Partner Interconnect VLAN attachments and Cloud Routers"
+  type        = string
+  default     = "europe-west9"
+}
+
 variable "gcp_interconnect_router_asn" {
   description = "BGP ASN for the GCP Cloud Router used for Partner Interconnect"
   type        = number
-  default     = 65000
+  default     = 16550
 }
 
 variable "gcp_interconnect_bandwidth" {
@@ -246,8 +265,3 @@ variable "gcp_interconnect_bandwidth" {
   default     = "BPS_1G"
 }
 
-variable "gcp_interconnect_pairing_key" {
-  description = "Pairing key from the partner for the VLAN attachment (required when deploy_gcp_interconnect=true)"
-  type        = string
-  default     = ""
-}

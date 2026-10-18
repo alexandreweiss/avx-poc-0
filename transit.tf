@@ -1,14 +1,18 @@
 # --- AWS Transit (Dublin, eu-west-1) ---
 
+locals {
+  transit_aws_name = "transit-aws-dublin"
+}
+
 module "transit_aws" {
   source  = "terraform-aviatrix-modules/mc-transit/aviatrix"
-  version = "9.0.0"
+  version = "10.1.0"
 
   cloud         = "aws"
   region        = var.aws_region
   account       = var.aws_account_name
   cidr          = var.transit_aws_cidr
-  name          = "transit-aws-dublin"
+  name          = local.transit_aws_name
   instance_size = var.transit_aws_gw_size
   ha_gw         = false
 
@@ -20,14 +24,14 @@ module "transit_aws" {
 
 module "transit_gcp" {
   source  = "terraform-aviatrix-modules/mc-transit/aviatrix"
-  version = "9.0.0"
+  version = "10.1.0"
   count   = var.deploy_gcp ? 1 : 0
 
   cloud         = "gcp"
   region        = var.gcp_region
   account       = var.gcp_account_name
   cidr          = var.transit_gcp_cidr
-  name          = "transit-gcp-paris"
+  name          = "transit-gcp-frankfurt"
   instance_size = var.transit_gcp_gw_size
   ha_gw         = false
 

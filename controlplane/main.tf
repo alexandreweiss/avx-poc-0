@@ -1,6 +1,6 @@
 module "control_plane" {
-  source  = "terraform-aviatrix-modules/aws-controlplane/aviatrix"
-  version = "1.0.12"
+  source = "terraform-aviatrix-modules/aws-controlplane/aviatrix"
+  #version = "1.0.12"
 
   controller_name           = var.controller_name
   controller_instance_type  = var.controller_instance_type
@@ -21,5 +21,6 @@ module "control_plane" {
     copilot_initialization    = true
     iam_roles                 = var.create_iam_roles
     account_onboarding        = true
+    sg_management             = true
   }
 }

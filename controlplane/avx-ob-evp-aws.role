@@ -1,0 +1,44 @@
+{
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Sid": "AllowDirectConnectAndNetworkManagement",
+			"Effect": "Allow",
+			"Action": [
+				"directconnect:DescribeConnections",
+				"directconnect:ConfirmConnection",
+				"directconnect:DescribeVirtualInterfaces",
+				"directconnect:DescribeLocations",
+				"directconnect:DescribeInterconnects",
+				"directconnect:DescribeTags",
+				"directconnect:CreatePrivateVirtualInterface",
+				"directconnect:CreateTransitVirtualInterface",
+				"directconnect:DescribeDirectConnectGateways",
+				"ec2:DescribeVpnGateways",
+				"ec2:DescribeRegions"
+			],
+			"Resource": "*"
+		},
+		{
+			"Sid": "AllowAccountListRegions",
+			"Effect": "Allow",
+			"Action": "account:ListRegions",
+			"Resource": "arn:aws:account::211098808963:account"
+		},
+		{
+			"Sid": "AllowVIFManagementMultiRegion",
+			"Effect": "Allow",
+			"Action": [
+				"directconnect:TagResource",
+				"directconnect:DeleteVirtualInterface"
+			],
+			"Resource": "arn:aws:directconnect:*:211098808963:dxvif/*"
+		},
+		{
+			"Sid": "AllowAllDXGatewayAssociations",
+			"Effect": "Allow",
+			"Action": "directconnect:DescribeDirectConnectGatewayAssociations",
+			"Resource": "*"
+		}
+	]
+}
