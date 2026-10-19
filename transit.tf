@@ -18,6 +18,8 @@ module "transit_aws" {
 
   connected_transit      = true
   enable_transit_firenet = false
+  single_az_ha           = false
+  insane_mode            = true
 }
 
 # --- GCP Transit (Frankfurt, europe-west3) ---
@@ -36,15 +38,19 @@ module "transit_gcp" {
   ha_gw         = false
 
   connected_transit = true
+  single_az_ha      = false
+  insane_mode       = true
 }
 
 # --- AWS ↔ GCP Transit Peering ---
 
-resource "aviatrix_transit_gateway_peering" "aws_gcp" {
-  count                 = var.deploy_gcp ? 1 : 0
-  transit_gateway_name1 = module.transit_aws.transit_gateway.gw_name
-  transit_gateway_name2 = module.transit_gcp[0].transit_gateway.gw_name
-}
+# TODO AVX-82054: re-enable once private_ip_peering is released in the TF provider
+# resource "aviatrix_transit_gateway_peering" "aws_gcp" {
+#   count                 = var.deploy_gcp ? 1 : 0
+#   transit_gateway_name1 = module.transit_aws.transit_gateway.gw_name
+#   transit_gateway_name2 = module.transit_gcp[0].transit_gateway.gw_name
+#   private_ip_peering    = true
+# }
 
 # --- DCF: enable distributed firewalling on the controller ---
 

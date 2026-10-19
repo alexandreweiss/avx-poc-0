@@ -24,6 +24,11 @@ resource "aws_dx_gateway_association" "transit_aws" {
 
   dx_gateway_id         = aws_dx_gateway.this[0].id
   associated_gateway_id = aws_vpn_gateway.transit_aws[0].id
+
+  allowed_prefixes = [
+    var.transit_aws_cidr,
+    var.transit_gcp_cidr,
+  ]
 }
 
 data "aws_route_table" "transit_aws_public" {

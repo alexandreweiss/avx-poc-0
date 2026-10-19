@@ -16,12 +16,14 @@ resource "aviatrix_gateway" "vpn" {
   vpn_access   = true
   vpn_cidr     = var.vpn_client_cidr
   split_tunnel = true
+  single_az_ha = false
 
   additional_cidrs = join(",", compact([
     var.transit_aws_cidr,
     var.spoke_aws1_cidr,
     var.spoke_aws2_cidr,
     var.deploy_eks ? var.eks_cidr : "",
+    var.deploy_gcp ? var.transit_gcp_cidr : "",
     var.deploy_gcp ? var.spoke_gcp_cidr : "",
   ]))
 }

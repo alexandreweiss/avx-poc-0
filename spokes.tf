@@ -19,6 +19,7 @@ resource "aviatrix_spoke_gateway" "aws1" {
   gw_size        = var.spoke_aws_gw_size
   subnet         = aviatrix_vpc.spoke_aws1.public_subnets[0].cidr
   single_ip_snat = true
+  single_az_ha   = false
 }
 
 resource "aviatrix_spoke_transit_attachment" "aws1" {
@@ -47,6 +48,7 @@ resource "aviatrix_spoke_gateway" "aws2" {
   gw_size        = var.spoke_aws_gw_size
   subnet         = aviatrix_vpc.spoke_aws2.public_subnets[0].cidr
   single_ip_snat = true
+  single_az_ha   = false
 }
 
 resource "aviatrix_spoke_transit_attachment" "aws2" {
@@ -79,6 +81,7 @@ resource "aviatrix_spoke_gateway" "gcp" {
   gw_size        = var.spoke_gcp_gw_size
   subnet         = aviatrix_vpc.spoke_gcp[0].subnets[0].cidr
   single_ip_snat = true
+  single_az_ha   = false
 }
 
 resource "aviatrix_spoke_transit_attachment" "gcp" {

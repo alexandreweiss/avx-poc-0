@@ -51,7 +51,7 @@ variable "spoke_aws2_cidr" {
 variable "transit_aws_gw_size" {
   description = "AWS transit gateway instance size"
   type        = string
-  default     = "c5.xlarge"
+  default     = "c5n.xlarge"
 }
 
 variable "spoke_aws_gw_size" {
@@ -99,7 +99,7 @@ variable "spoke_gcp_cidr" {
 variable "transit_gcp_gw_size" {
   description = "GCP transit gateway instance size"
   type        = string
-  default     = "n1-standard-2"
+  default     = "n1-highcpu-4"
 }
 
 variable "spoke_gcp_gw_size" {
