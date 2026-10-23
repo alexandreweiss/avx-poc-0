@@ -19,7 +19,7 @@ data "aws_ami" "ubuntu" {
 
 resource "aws_security_group" "spoke_vms" {
   name        = "poc-spoke-vms-sg"
-  description = "RFC1918 ingress only - egress via Aviatrix spoke gateway (single_ip_snat)"
+  description = "RFC1918 ingress + iperf3 - egress via Aviatrix spoke gateway (single_ip_snat)"
   vpc_id      = aviatrix_vpc.spoke_aws1.vpc_id
 
   ingress {
@@ -71,11 +71,25 @@ resource "aws_instance" "spoke_aws1" {
 
   user_data = <<-EOF
     #!/bin/bash
+    # Wait for internet via Aviatrix SNAT (route table programmed asynchronously)
+    for i in $(seq 1 20); do
+      curl -s --max-time 5 http://archive.ubuntu.com > /dev/null 2>&1 && break
+      sleep 15
+    done
     apt-get update -y
-    apt-get install -y nginx
+    apt-get install -y nginx iperf3
+    TOKEN=$(curl -s -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+    INSTANCE_ID=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/instance-id)
+    HOSTNAME=$(hostname)
+    REGION=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/placement/region)
+    AZ=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/placement/availability-zone)
+    LOCAL_IP=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/local-ipv4)
     cat > /var/www/html/index.html <<HTML
     <!DOCTYPE html><html><body>
-    <h1>Spoke: AWS Dublin (eu-west-1) — Spoke 1</h1>
+    <h1>$HOSTNAME</h1>
+    <p>Instance: $INSTANCE_ID</p>
+    <p>Region: $REGION | AZ: $AZ</p>
+    <p>IP: $LOCAL_IP</p>
     </body></html>
     HTML
     systemctl enable nginx
@@ -103,11 +117,25 @@ resource "aws_instance" "spoke_aws2" {
 
   user_data = <<-EOF
     #!/bin/bash
+    # Wait for internet via Aviatrix SNAT (route table programmed asynchronously)
+    for i in $(seq 1 20); do
+      curl -s --max-time 5 http://archive.ubuntu.com > /dev/null 2>&1 && break
+      sleep 15
+    done
     apt-get update -y
-    apt-get install -y nginx
+    apt-get install -y nginx iperf3
+    TOKEN=$(curl -s -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+    INSTANCE_ID=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/instance-id)
+    HOSTNAME=$(hostname)
+    REGION=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/placement/region)
+    AZ=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/placement/availability-zone)
+    LOCAL_IP=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/local-ipv4)
     cat > /var/www/html/index.html <<HTML
     <!DOCTYPE html><html><body>
-    <h1>Spoke: AWS Dublin (eu-west-1) — Spoke 2</h1>
+    <h1>$HOSTNAME</h1>
+    <p>Instance: $INSTANCE_ID</p>
+    <p>Region: $REGION | AZ: $AZ</p>
+    <p>IP: $LOCAL_IP</p>
     </body></html>
     HTML
     systemctl enable nginx
@@ -140,7 +168,12 @@ resource "google_compute_firewall" "spoke_gcp_allow" {
 
   allow {
     protocol = "tcp"
-    ports    = ["22", "80"]
+    ports    = ["22", "80", "5201"]
+  }
+
+  allow {
+    protocol = "udp"
+    ports    = ["5201"]
   }
 
   allow {
@@ -173,11 +206,21 @@ resource "google_compute_instance" "spoke_gcp" {
 
   metadata_startup_script = <<-EOF
     #!/bin/bash
+    # Wait for internet via Aviatrix SNAT (route table programmed asynchronously)
+    for i in $(seq 1 20); do
+      curl -s --max-time 5 http://archive.ubuntu.com > /dev/null 2>&1 && break
+      sleep 15
+    done
     apt-get update -y
-    apt-get install -y nginx
+    apt-get install -y nginx iperf3
+    INSTANCE_NAME=$(curl -s "http://metadata.google.internal/computeMetadata/v1/instance/name" -H "Metadata-Flavor: Google")
+    ZONE=$(curl -s "http://metadata.google.internal/computeMetadata/v1/instance/zone" -H "Metadata-Flavor: Google" | awk -F/ '{print $NF}')
+    LOCAL_IP=$(curl -s "http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/ip" -H "Metadata-Flavor: Google")
     cat > /var/www/html/index.html <<HTML
     <!DOCTYPE html><html><body>
-    <h1>Spoke: GCP Frankfurt (europe-west3)</h1>
+    <h1>$INSTANCE_NAME</h1>
+    <p>Zone: $ZONE</p>
+    <p>IP: $LOCAL_IP</p>
     </body></html>
     HTML
     systemctl enable nginx

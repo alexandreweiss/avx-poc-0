@@ -40,9 +40,24 @@ data "aws_route_table" "transit_aws_public" {
   }
 }
 
+data "aws_route_table" "transit_aws_aviatrix" {
+  count  = var.deploy_dx_gateway ? 1 : 0
+  vpc_id = module.transit_aws.vpc.vpc_id
+  filter {
+    name   = "tag:Name"
+    values = ["aviatrix-${local.transit_aws_name}"]
+  }
+}
+
 resource "aws_vpn_gateway_route_propagation" "transit_aws_public" {
   count          = var.deploy_dx_gateway ? 1 : 0
   vpn_gateway_id = aws_vpn_gateway.transit_aws[0].id
   route_table_id = data.aws_route_table.transit_aws_public[0].id
+}
+
+resource "aws_vpn_gateway_route_propagation" "transit_aws_aviatrix" {
+  count          = var.deploy_dx_gateway ? 1 : 0
+  vpn_gateway_id = aws_vpn_gateway.transit_aws[0].id
+  route_table_id = data.aws_route_table.transit_aws_aviatrix[0].id
 }
 

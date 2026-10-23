@@ -250,7 +250,7 @@ variable "deploy_gcp_interconnect" {
 variable "gcp_interconnect_region" {
   description = "GCP region for Partner Interconnect VLAN attachments and Cloud Routers"
   type        = string
-  default     = "europe-west9"
+  default     = "europe-west3"
 }
 
 variable "gcp_interconnect_router_asn" {
