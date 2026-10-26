@@ -62,7 +62,10 @@ resource "aviatrix_smart_group" "vpn_clients" {
   depends_on = [aviatrix_distributed_firewalling_config.this]
 }
 
-# Smart group for EKS nodes (by cluster tag — covers all node groups)
+# Smart group for EKS nodes — VM type matched by EKS cluster tag.
+# EKS managed node groups automatically tag instances with eks:cluster-name.
+# CIDR-based matching proved unreliable for egress DCF on spoke gateways (tested).
+# Does NOT depend on k8s cluster onboarding — tag exists on EC2 before kubelet joins.
 
 resource "aviatrix_smart_group" "eks_nodes" {
   count = var.deploy_eks ? 1 : 0
@@ -70,8 +73,12 @@ resource "aviatrix_smart_group" "eks_nodes" {
 
   selector {
     match_expressions {
-      type           = "k8s_node"
-      k8s_cluster_id = aviatrix_kubernetes_cluster.eks[0].cluster_id
+      type         = "vm"
+      account_name = var.aws_account_name
+      region       = var.aws_region
+      tags = {
+        "eks:cluster-name" = "spoke-eks-cluster"
+      }
     }
   }
 
@@ -87,7 +94,7 @@ resource "aviatrix_smart_group" "gatus_aviatrix" {
   selector {
     match_expressions {
       type           = "k8s"
-      k8s_cluster_id = aviatrix_kubernetes_cluster.eks[0].cluster_id
+      k8s_cluster_id = aws_eks_cluster.this[0].arn
       k8s_namespace  = "gatus-aviatrix"
     }
   }
@@ -95,41 +102,30 @@ resource "aviatrix_smart_group" "gatus_aviatrix" {
   depends_on = [aviatrix_distributed_firewalling_config.this]
 }
 
-resource "aviatrix_smart_group" "gatus_example" {
+resource "aviatrix_smart_group" "eks_all_pods" {
   count = var.deploy_eks ? 1 : 0
-  name  = "gatus-example-pods"
+  name  = "eks-all-pods"
 
   selector {
     match_expressions {
       type           = "k8s"
-      k8s_cluster_id = aviatrix_kubernetes_cluster.eks[0].cluster_id
-      k8s_namespace  = "gatus-example"
+      k8s_cluster_id = aws_eks_cluster.this[0].arn
     }
   }
 
   depends_on = [aviatrix_distributed_firewalling_config.this]
 }
 
-# --- Webgroups for domain-based DCF filtering ---
+# --- Webgroups for URL-level DCF filtering (requires TLS inspection on spoke GW) ---
+# Both paths share SNI "github.com" — urlfilter differentiates at URL level post-decryption.
 
-resource "aviatrix_web_group" "aviatrix_ai" {
+resource "aviatrix_web_group" "github_aviatrixsystems" {
   count = var.deploy_eks ? 1 : 0
-  name  = "domain-aviatrix-ai"
+  name  = "url-github-aviatrixsystems"
 
   selector {
     match_expressions {
-      snifilter = "aviatrix.ai"
-    }
-  }
-}
-
-resource "aviatrix_web_group" "example_com" {
-  count = var.deploy_eks ? 1 : 0
-  name  = "domain-example-com"
-
-  selector {
-    match_expressions {
-      snifilter = "www.example.com"
+      urlfilter = "github.com/AviatrixSystems"
     }
   }
 }
@@ -182,12 +178,14 @@ resource "aviatrix_distributed_firewalling_policy_list" "poc" {
     }
   }
 
+  # Priority 220 — AFTER Gatus policies (210/211). Pods share node subnet (VPC CNI),
+  # so this CIDR rule must be lower priority than Gatus k8s smart group rules.
   dynamic "policies" {
     for_each = var.deploy_eks ? [1] : []
     content {
       name     = "allow-eks-nodes-egress"
       action   = "PERMIT"
-      priority = 60
+      priority = 221
       protocol = "ANY"
       logging  = true
 
@@ -281,18 +279,20 @@ resource "aviatrix_distributed_firewalling_policy_list" "poc" {
   }
 
 
+  # Policy 211: PERMIT gatus-aviatrix → github.com/AviatrixSystems
   dynamic "policies" {
     for_each = var.deploy_eks ? [1] : []
     content {
-      name     = "deny-gatus-aviatrix-ai"
-      action   = "DENY"
-      priority = 210
-      protocol = "TCP"
-      logging  = true
+      name           = "permit-gatus-aviatrix-github"
+      action         = "PERMIT"
+      priority       = 211
+      protocol       = "TCP"
+      logging        = true
+      decrypt_policy = "DECRYPT_ALLOWED"
 
       src_smart_groups = [aviatrix_smart_group.gatus_aviatrix[0].uuid]
       dst_smart_groups = [var.public_internet_smartgroup_uuid]
-      web_groups       = [aviatrix_web_group.aviatrix_ai[0].uuid]
+      web_groups       = [aviatrix_web_group.github_aviatrixsystems[0].uuid]
 
       port_ranges {
         lo = 443
@@ -301,18 +301,18 @@ resource "aviatrix_distributed_firewalling_policy_list" "poc" {
     }
   }
 
+  # Policy 212: DENY all EKS pods → internet (default web deny; rule 211 permits gatus-aviatrix first)
   dynamic "policies" {
-    for_each = var.deploy_eks && var.allow_example_com_egress ? [1] : []
+    for_each = var.deploy_eks ? [1] : []
     content {
-      name     = "allow-gatus-example-com"
-      action   = "PERMIT"
-      priority = 211
+      name     = "deny-eks-pods-internet"
+      action   = "DENY"
+      priority = 212
       protocol = "TCP"
       logging  = true
 
-      src_smart_groups = [aviatrix_smart_group.gatus_example[0].uuid]
+      src_smart_groups = [aviatrix_smart_group.eks_all_pods[0].uuid]
       dst_smart_groups = [var.public_internet_smartgroup_uuid]
-      web_groups       = [aviatrix_web_group.example_com[0].uuid]
 
       port_ranges {
         lo = 443
@@ -331,4 +331,8 @@ resource "aviatrix_distributed_firewalling_policy_list" "poc" {
     src_smart_groups = [var.anywhere_smartgroup_uuid]
     dst_smart_groups = [var.anywhere_smartgroup_uuid]
   }
+
+  # Re-applied after EKS spoke is attached so controller knows spoke CIDR when pushing rules.
+  # Fixes CIDR-based smart group not propagating to spoke-eks-gw.
+  depends_on = [aviatrix_spoke_transit_attachment.eks]
 }

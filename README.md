@@ -240,7 +240,7 @@ Each page confirms the VM's cloud and region. SSH commands (private IP, key at `
 | ------------------------ | --------------- | --------------------------------- |
 | `transit_aws_gw_size`    | `c5.xlarge`     | AWS transit gateway instance size |
 | `transit_gcp_gw_size`    | `n1-standard-2` | GCP transit gateway instance size |
-| `spoke_aws_gw_size`      | `t3.small`      | AWS spoke gateway instance size   |
+| `spoke_aws_gw_size`      | `t3.medium`     | AWS spoke gateway instance size   |
 | `spoke_gcp_gw_size`      | `n1-standard-2` | GCP spoke gateway instance size   |
 | `spoke_vm_instance_type` | `t3.micro`      | EC2 instance type for spoke VMs   |
 | `spoke_gcp_vm_type`      | `e2-micro`      | GCP instance type for spoke VM    |
@@ -255,13 +255,17 @@ Each page confirms the VM's cloud and region. SSH commands (private IP, key at `
 
 When `deploy_eks = true`, Terraform deploys:
 - EKS cluster v1.32 in a dedicated VPC (10.22.0.0/23) with **VPC CNI** — each pod gets a real VPC IP, visible to Aviatrix as a network entity
-- Managed node group (2× `t3.medium`, private subnets) with NAT gateway for egress
-- Aviatrix spoke gateway in the EKS VPC, attached to the AWS transit
-- Two Gatus deployments: `gatus-aviatrix` (monitors `https://aviatrix.ai`) and `gatus-example` (monitors `https://www.example.com`), each in its own namespace
-- Two k8s-type Aviatrix smart groups matched by cluster + namespace
-- Two webgroups for domain-based SNI filtering (`aviatrix.ai`, `example.com`)
-- DCF policy 210: **DENY** `gatus-aviatrix` → `aviatrix.ai` webgroup (demonstrates domain-level blocking)
-- DCF policy 211: **PERMIT** `gatus-example` → `example.com` webgroup (conditional on `allow_example_com_egress`; set `false` to demonstrate default-deny)
+- Managed node group (2× `t3.medium`, private subnets) with `single_ip_snat = true` on the spoke GW — pods SNAT to the spoke EIP outbound
+- Aviatrix spoke gateway (`spoke-eks-gw`) in the EKS VPC, attached to the AWS transit
+- Two Gatus deployments in separate namespaces:
+  - `gatus-aviatrix` (monitors `https://github.com/AviatrixSystems`) — should **succeed**
+  - `gatus-alexweiss` (monitors `https://github.com/alexandreweiss`) — should **fail** (blocked by DCF)
+- Both targets share SNI `github.com` — URL-path differentiation requires **TLS inspection** on `spoke-eks-gw`; Aviatrix MITM CA cert injected into pods via init container
+- k8s-type Aviatrix smart groups: `gatus-aviatrix-pods` (namespace `gatus-aviatrix`), `eks-all-pods` (entire cluster, no namespace filter)
+- Webgroup `url-github-aviatrixsystems` for URL-level filtering (`github.com/AviatrixSystems`)
+- DCF policy 211: **PERMIT** `gatus-aviatrix` pods → `github.com/AviatrixSystems` webgroup (TCP 443, TLS inspect `DECRYPT_ALLOWED`)
+- DCF policy 212: **DENY** all EKS pods → Public Internet (TCP 443) — default web deny; rule 211 fires first for permitted pods
+- DCF policy 221: **PERMIT** EKS node EC2s → Public Internet (ANY) — node bootstrap and AWS API access
 
 **AWS quota requirements for EKS:** 1 additional VPC (total 5+) and 1 additional EIP (NAT gateway) beyond the base deployment. See the quota commands in the AWS quota table above.
 
@@ -298,8 +302,8 @@ When `deploy_eks = true`, Terraform deploys:
 | `gcp_interconnect_pairing_key` | GCP Partner Interconnect pairing key to give to Orange (if deployed)            |
 | `eks_cluster_endpoint`         | EKS cluster API endpoint (if `deploy_eks = true`)                               |
 | `eks_kubeconfig_cmd`           | `aws eks update-kubeconfig` command to configure kubectl                         |
-| `gatus_aviatrix_url`           | Gatus aviatrix.ai dashboard pod URL — accessible via VPN + kubectl (if EKS)     |
-| `gatus_example_url`            | Gatus example.com dashboard pod URL — accessible via VPN + kubectl (if EKS)     |
+| `gatus_aviatrix_url`           | Gatus `github.com/AviatrixSystems` dashboard pod URL — accessible via kubectl (if EKS) |
+| `gatus_example_url`            | Gatus `github.com/alexandreweiss` dashboard pod URL — accessible via kubectl (if EKS)  |
 
 [↑ Back to top](#table-of-contents)
 
@@ -309,22 +313,22 @@ When `deploy_eks = true`, Terraform deploys:
 
 Distributed Cloud Firewall is enabled at the controller level and enforced at each spoke gateway. Smart groups use VM tags (AWS) and CIDR (GCP) to identify workloads — no manual IP management.
 
-| Priority | Rule                                                                          | When         | Action        |
-| -------- | ----------------------------------------------------------------------------- | ------------ | ------------- |
-| 50       | VPN clients → Anywhere (ANY)                                                  | deploy_vpn   | PERMIT        |
-| 60       | EKS nodes → Public Internet (ANY)                                             | deploy_eks   | PERMIT        |
-| 70       | spoke-aws1 + spoke-aws2 VMs → Public Internet (TCP 80, 443)                  | always       | PERMIT        |
-| 71       | spoke-gcp VMs → Public Internet (TCP 80, 443)                                | deploy_gcp   | PERMIT        |
-| 100      | spoke-aws1 → spoke-aws2                                                       | always       | PERMIT ANY    |
-| 101      | spoke-aws2 → spoke-aws1                                                       | always       | PERMIT ANY    |
-| 102–105  | spoke-aws1/aws2 ↔ spoke-gcp (all pairs)                                       | deploy_gcp   | PERMIT ANY    |
-| 210      | gatus-aviatrix pods → Public Internet via `aviatrix.ai` webgroup (TCP 443)   | deploy_eks   | DENY (logged) |
-| 211      | gatus-example pods → Public Internet via `example.com` webgroup (TCP 443)    | deploy_eks + allow_example_com_egress | PERMIT |
-| 65000    | Anywhere → Anywhere                                                           | always       | DENY (logged) |
+| Priority | Rule                                                                                       | When       | Action        |
+| -------- | ------------------------------------------------------------------------------------------ | ---------- | ------------- |
+| 50       | VPN clients → Anywhere (ANY)                                                               | deploy_vpn | PERMIT        |
+| 70       | spoke-aws1 + spoke-aws2 VMs → Public Internet (TCP 80, 443)                               | always     | PERMIT        |
+| 71       | spoke-gcp VMs → Public Internet (TCP 80, 443)                                             | deploy_gcp | PERMIT        |
+| 100      | spoke-aws1 → spoke-aws2                                                                    | always     | PERMIT ANY    |
+| 101      | spoke-aws2 → spoke-aws1                                                                    | always     | PERMIT ANY    |
+| 102–105  | spoke-aws1/aws2 ↔ spoke-gcp (all pairs)                                                    | deploy_gcp | PERMIT ANY    |
+| 211      | `gatus-aviatrix` pods → Public Internet via `github.com/AviatrixSystems` webgroup (TCP 443, TLS inspect) | deploy_eks | PERMIT        |
+| 212      | All EKS pods → Public Internet (TCP 443)                                                   | deploy_eks | DENY (logged) |
+| 221      | EKS node EC2s → Public Internet (ANY)                                                      | deploy_eks | PERMIT        |
+| 65000    | Anywhere → Anywhere                                                                        | always     | DENY (logged) |
 
 All rules log matched flows. Flow logs visible in CoPilot > Security > Distributed Cloud Firewall > Monitor.
 
-> Priority 210 is a **DENY** for `gatus-aviatrix` pods — intentional demo of domain-level blocking. Priority 211 is a **PERMIT** for `gatus-example` pods, toggled by `allow_example_com_egress = false` to demonstrate default-deny blocking.
+> Rules 211–221 demonstrate **URL-level TLS inspection**: both Gatus pods send HTTPS to `github.com` (same SNI). Rule 211 PERMITs only `github.com/AviatrixSystems` with `DECRYPT_ALLOWED`; rule 212 DENYs all other pod internet traffic. Node EC2s (rule 221) are a separate smart group (VM tag, not k8s), so they are unaffected by rule 212.
 
 [↑ Back to top](#table-of-contents)
 
@@ -446,15 +450,28 @@ These are **cloud provider infrastructure costs only**. All figures are approxim
 
 ### AWS (`eu-west-1`)
 
-| Resource                        | Type        | Billing model    | Monthly cost (est.) |
-| ------------------------------- | ----------- | ---------------- | ------------------- |
-| Transit gateway EC2             | `c5.xlarge` | $0.192/hr × 730  | **~$140/month**     |
-| Spoke gateway 1 EC2             | `t3.small`  | $0.023/hr × 730  | **~$17/month**      |
-| Spoke gateway 2 EC2             | `t3.small`  | $0.023/hr × 730  | **~$17/month**      |
-| Spoke VM 1 EC2                  | `t3.micro`  | $0.012/hr × 730  | **~$9/month**       |
-| Spoke VM 2 EC2                  | `t3.micro`  | $0.012/hr × 730  | **~$9/month**       |
-| EIPs (2× spoke gw + 1× transit) | —           | No charge in use | $0                  |
-| **AWS subtotal**                |             |                  | **~$192/month**     |
+**Base deployment (always active):**
+
+| Resource                             | Type        | Billing model     | Monthly cost (est.) |
+| ------------------------------------ | ----------- | ----------------- | ------------------- |
+| Transit gateway EC2                  | `c5.xlarge` | $0.192/hr × 730   | **~$140/month**     |
+| Spoke gateway 1 EC2                  | `t3.medium` | $0.047/hr × 730   | **~$34/month**      |
+| Spoke gateway 2 EC2                  | `t3.medium` | $0.047/hr × 730   | **~$34/month**      |
+| VPN gateway EC2 (`deploy_vpn=true`)  | `t3.medium` | $0.047/hr × 730   | **~$34/month**      |
+| Spoke VM 1 EC2                       | `t3.micro`  | $0.012/hr × 730   | **~$9/month**       |
+| Spoke VM 2 EC2                       | `t3.micro`  | $0.012/hr × 730   | **~$9/month**       |
+| EIPs (gateways)                      | —           | No charge in use  | $0                  |
+| **AWS base subtotal**                |             |                   | **~$260/month**     |
+
+**Optional EKS addition (`deploy_eks=true`):**
+
+| Resource                    | Type        | Billing model    | Monthly cost (est.) |
+| --------------------------- | ----------- | ---------------- | ------------------- |
+| EKS control plane           | managed     | $0.10/hr × 730   | **~$73/month**      |
+| EKS spoke gateway EC2       | `t3.medium` | $0.047/hr × 730  | **~$34/month**      |
+| EKS node group (2× nodes)   | `t3.medium` | $0.047/hr × 2 × 730 | **~$69/month**  |
+| NAT Gateway (node egress)   | —           | $0.045/hr × 730  | **~$33/month**      |
+| **EKS addition subtotal**   |             |                  | **~$209/month**     |
 
 > Spoke VMs have **private IPs only** (`associate_public_ip_address = false`). No EIP cost for workloads. Internet egress goes via the Aviatrix spoke gateway's EIP (`single_ip_snat = true`).
 
@@ -472,13 +489,15 @@ These are **cloud provider infrastructure costs only**. All figures are approxim
 
 ### Summary
 
-| Component                                           | Monthly cost (est.) |
-| --------------------------------------------------- | ------------------- |
-| AWS compute (transit + 2× spokes + 2× VMs)          | ~$192               |
-| GCP compute (transit + spoke + VM)                  | ~$177               |
-| AWS Direct Connect — 50 Mbps hosted (Orange Paris)  | ~$22                |
-| GCP Partner Interconnect — 50 Mbps VLAN + router    | ~$47                |
-| **Total CSP**                                       | **~$438/month**     |
+| Component                                                          | Monthly cost (est.) |
+| ------------------------------------------------------------------ | ------------------- |
+| AWS base (transit + 2× spokes + VPN GW + 2× VMs)                  | ~$260               |
+| AWS EKS (control plane + spoke GW + 2× nodes + NAT GW)            | ~$209               |
+| GCP compute (transit + spoke + VM)                                 | ~$177               |
+| AWS Direct Connect — 50 Mbps hosted (Orange Paris)                | ~$22                |
+| GCP Partner Interconnect — 50 Mbps VLAN + router                  | ~$47                |
+| **Total CSP (all features enabled)**                               | **~$715/month**     |
+| **Total CSP (base only — no EKS)**                                 | **~$506/month**     |
 
 DX: $0.03/hr × 730 hrs (AWS port charge — same rate regardless of partner facility). DX Gateway and VGW no charge. Orange charges the local circuit fee separately. Data transfer out $0.02/GB (usage-based).
 

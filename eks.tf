@@ -197,6 +197,9 @@ resource "aws_eks_node_group" "this" {
     aws_iam_role_policy_attachment.eks_ecr_readonly,
     aws_eks_addon.vpc_cni,
     aviatrix_spoke_transit_attachment.eks,
+    kubernetes_config_map_v1_data.aws_auth,
+    # DCF policy must be pushed to spoke-eks-gw before nodes launch.
+    aviatrix_distributed_firewalling_policy_list.poc,
   ]
 }
 
@@ -269,6 +272,9 @@ resource "aws_eks_access_policy_association" "deployer" {
 
   depends_on = [aws_eks_access_entry.deployer]
 }
+
+# Admin SSO role: access via aws-auth ConfigMap only (EKS access entries reject /aws-reserved/ path).
+# Added to aws-auth in kubernetes_config_map_v1_data.aws_auth with system:masters group.
 
 # --- Allow inbound to cluster SG from spoke CIDRs (VPN gw SNAT + transit) ---
 # VPN clients appear as VPN gw private IP; spokes reach pods directly via Aviatrix.

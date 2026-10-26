@@ -236,9 +236,16 @@ variable "eks_node_instance_type" {
 }
 
 variable "allow_example_com_egress" {
-  description = "Allow gatus-example pods to reach www.example.com via DCF (set false to demonstrate default-deny blocking)"
+  description = "Unused — superseded by URL-filter DCF policies in dcf.tf (policies 210/211)"
   type        = bool
   default     = true
+}
+
+variable "aviatrix_tls_ca_cert_pem" {
+  description = "Aviatrix controller default CA certificate in PEM format (Controller UI -> Settings -> Controller -> Certificate -> Download CA Cert). Required when deploy_eks=true for TLS inspection URL filtering."
+  type        = string
+  default     = ""
+  sensitive   = true
 }
 
 variable "deploy_gcp_interconnect" {
