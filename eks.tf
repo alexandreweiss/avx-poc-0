@@ -273,8 +273,33 @@ resource "aws_eks_access_policy_association" "deployer" {
   depends_on = [aws_eks_access_entry.deployer]
 }
 
-# Admin SSO role: access via aws-auth ConfigMap only (EKS access entries reject /aws-reserved/ path).
-# Added to aws-auth in kubernetes_config_map_v1_data.aws_auth with system:masters group.
+# Admin SSO role: added to aws-auth for kubectl access (system:masters).
+# EKS Access Entry for console k8s Resources view — looks up full ARN by role name so the
+# caller does not need to know the /aws-reserved/sso.amazonaws.com/<region>/ path.
+
+data "aws_iam_role" "eks_sso" {
+  count = var.deploy_eks && var.eks_sso_role_name != "" ? 1 : 0
+  name  = var.eks_sso_role_name
+}
+
+resource "aws_eks_access_entry" "sso_admin" {
+  count         = var.deploy_eks && var.eks_sso_role_name != "" ? 1 : 0
+  cluster_name  = aws_eks_cluster.this[0].name
+  principal_arn = data.aws_iam_role.eks_sso[0].arn
+  type          = "STANDARD"
+  depends_on    = [aws_eks_cluster.this]
+}
+
+resource "aws_eks_access_policy_association" "sso_admin" {
+  count         = var.deploy_eks && var.eks_sso_role_name != "" ? 1 : 0
+  cluster_name  = aws_eks_cluster.this[0].name
+  principal_arn = data.aws_iam_role.eks_sso[0].arn
+  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+
+  access_scope { type = "cluster" }
+
+  depends_on = [aws_eks_access_entry.sso_admin]
+}
 
 # --- Allow inbound to cluster SG from spoke CIDRs (VPN gw SNAT + transit) ---
 # VPN clients appear as VPN gw private IP; spokes reach pods directly via Aviatrix.

@@ -25,7 +25,8 @@ gcp_account_name = "<gcp-account-name-in-controller>"
 
 # Optional: EKS with Gatus dashboards
 # deploy_eks               = false
-# eks_admin_iam_role        = "arn:aws:iam::<account-id>:role/<role-name>"  # grants kubectl access
+# eks_admin_iam_role        = "arn:aws:iam::<account-id>:role/<role-name>"  # grants kubectl access via aws-auth
+# eks_sso_role_name         = "AWSReservedSSO_<PermissionSetName>_<suffix>"  # grants EKS console k8s Resources view (TF resolves full ARN)
 # allow_example_com_egress  = true   # set false to demonstrate DCF blocking www.example.com
 
 # Optional: Aviatrix User VPN (split-tunnel to all spoke + EKS CIDRs)

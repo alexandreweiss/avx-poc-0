@@ -218,7 +218,13 @@ variable "eks_cidr" {
 }
 
 variable "eks_admin_iam_role" {
-  description = "IAM role ARN granted system:masters on the EKS cluster (e.g. SSO role for the deployer). Leave empty to skip."
+  description = "IAM role ARN granted system:masters on the EKS cluster via aws-auth (e.g. SSO role for the deployer). Leave empty to skip."
+  type        = string
+  default     = ""
+}
+
+variable "eks_sso_role_name" {
+  description = "SSO permission set role name for EKS console access entry (role name only, e.g. AWSReservedSSO_SubAccountAdmin_<suffix>). TF looks up the full ARN including region path automatically."
   type        = string
   default     = ""
 }

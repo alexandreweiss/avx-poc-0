@@ -116,6 +116,21 @@ resource "aviatrix_smart_group" "eks_all_pods" {
   depends_on = [aviatrix_distributed_firewalling_config.this]
 }
 
+resource "aviatrix_smart_group" "eks_kube_system" {
+  count = var.deploy_eks ? 1 : 0
+  name  = "eks-kube-system"
+
+  selector {
+    match_expressions {
+      type           = "k8s"
+      k8s_cluster_id = aws_eks_cluster.this[0].arn
+      k8s_namespace  = "kube-system"
+    }
+  }
+
+  depends_on = [aviatrix_distributed_firewalling_config.this]
+}
+
 # --- Webgroups for URL-level DCF filtering (requires TLS inspection on spoke GW) ---
 # Both paths share SNI "github.com" — urlfilter differentiates at URL level post-decryption.
 
@@ -278,6 +293,22 @@ resource "aviatrix_distributed_firewalling_policy_list" "poc" {
     }
   }
 
+
+  # Policy 209: PERMIT kube-system pods → internet (ECR image pulls, k8s API, node-local DNS)
+  # Must be before rule 212 (deny all pods) so system daemonsets can reach ECR.
+  dynamic "policies" {
+    for_each = var.deploy_eks ? [1] : []
+    content {
+      name     = "permit-kube-system-egress"
+      action   = "PERMIT"
+      priority = 209
+      protocol = "ANY"
+      logging  = true
+
+      src_smart_groups = [aviatrix_smart_group.eks_kube_system[0].uuid]
+      dst_smart_groups = [var.public_internet_smartgroup_uuid]
+    }
+  }
 
   # Policy 211: PERMIT gatus-aviatrix → github.com/AviatrixSystems
   dynamic "policies" {

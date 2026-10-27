@@ -55,12 +55,20 @@ resource "kubernetes_config_map" "gatus_aviatrix" {
   }
   data = {
     "config.yaml" = yamlencode({
-      endpoints = [{
-        name       = "github-aviatrixsystems"
-        url        = "https://github.com/AviatrixSystems"
-        interval   = "30s"
-        conditions = ["[STATUS] == 200"]
-      }]
+      endpoints = [
+        {
+          name       = "github-aviatrixsystems"
+          url        = "https://github.com/AviatrixSystems"
+          interval   = "30s"
+          conditions = ["[STATUS] == 200"]
+        },
+        {
+          name       = "github-alexandreweiss"
+          url        = "https://github.com/alexandreweiss"
+          interval   = "30s"
+          conditions = ["[STATUS] == 200"]
+        },
+      ]
     })
   }
 }
